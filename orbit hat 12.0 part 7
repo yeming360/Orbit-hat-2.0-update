@@ -1,5 +1,3 @@
-Perfect! Here's the **complete updated script** with your exact requirements:
-
 print("🟢 Hat Orbit v9.9.6 loading...")
 
 local Players = game:GetService("Players")
