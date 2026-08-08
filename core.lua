@@ -1,4 +1,4 @@
--- Core.lua
+-- core.lua
 local Core = {}
 
 -- Services
