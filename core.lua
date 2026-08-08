@@ -1,17 +1,35 @@
--- core.lua
+-- core.lua (FIXED VERSION)
 local Core = {}
 
--- Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
+-- Services (get lazily)
+local function getPlayers() return game:GetService("Players") end
+local function getRunService() return game:GetService("RunService") end
+local function getUserInputService() return game:GetService("UserInputService") end
 
-local plr = Players.LocalPlayer
-local chr = plr.Character
-local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
+-- Lazy player getter
+local function getPlayer()
+    if not Core._player then
+        Core._player = getPlayers().LocalPlayer
+        while not Core._player do
+            task.wait()
+            Core._player = getPlayers().LocalPlayer
+        end
+    end
+    return Core._player
+end
+
+local function getCharacter()
+    local plr = getPlayer()
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local chr = getCharacter()
+    return chr:WaitForChild("HumanoidRootPart")
+end
 
 -- ═══════════════════════════════════════════════════════
--- SETTINGS (All settings here)
+-- SETTINGS (Same as before)
 -- ═══════════════════════════════════════════════════════
 Core.DISTANCE = 5
 Core.ORBIT_RADIUS = 3
@@ -194,14 +212,15 @@ Core.wingAngleX = 0; Core.wingAngleY = 0; Core.wingAngleZ = 0
 Core.wingDirX = 1; Core.wingDirY = 1; Core.wingDirZ = 1
 
 -- ═══════════════════════════════════════════════════════
--- HELPERS
+-- HELPERS (Use lazy getters)
 -- ═══════════════════════════════════════════════════════
+function Core.getPlayer() return getPlayer() end
+function Core.getCharacter() return getCharacter() end
+function Core.getHRP() return getHRP() end
+
 function Core.waitForHRP()
-    while not Core.hrp or not Core.hrp.Parent do
-        Core.chr = Core.plr.Character
-        Core.hrp = Core.chr and Core.chr:FindFirstChild("HumanoidRootPart")
-        if not Core.hrp then task.wait() end
-    end
+    Core.hrp = getHRP()
+    return Core.hrp
 end
 
 function Core.isWearable(inst)
@@ -241,9 +260,9 @@ function Core.setupHatOrbit(accessory)
     handle.CanCollide=false; handle:BreakJoints()
     for _,w in ipairs(handle:GetChildren()) do if w:IsA("Weld") or w:IsA("Motor6D") then w:Destroy() end end
     handle.AssemblyLinearVelocity=Vector3.zero; handle.AssemblyAngularVelocity=Vector3.zero
-    pcall(function() if not handle.Anchored then handle:SetNetworkOwner(Core.plr) end end)
+    pcall(function() if not handle.Anchored then handle:SetNetworkOwner(getPlayer()) end end)
     local orbitPart=Instance.new("Part",workspace)
-    orbitPart.Name="HatOrbitRef_"..accessory.Name; orbitPart.Anchored=true; orbitPart.CanCollide=false; orbitPart.Transparency=1; orbitPart.Size=Vector3.new(0.2,0.2,0.2); orbitPart.Position=Core.hrp.Position
+    orbitPart.Name="HatOrbitRef_"..accessory.Name; orbitPart.Anchored=true; orbitPart.CanCollide=false; orbitPart.Transparency=1; orbitPart.Size=Vector3.new(0.2,0.2,0.2); orbitPart.Position=getHRP().Position
     local ap=Instance.new("AlignPosition",handle); ap.MaxForce=math.huge; ap.MaxVelocity=math.huge; ap.Responsiveness=200; ap.Enabled=true
     ap.Attachment0=Instance.new("Attachment",handle); ap.Attachment1=Instance.new("Attachment",orbitPart)
     local ao=Instance.new("AlignOrientation",handle); ao.MaxTorque=math.huge; ao.MaxAngularVelocity=math.huge; ao.Responsiveness=200; ao.Enabled=Core.MAGNET_ENABLED
@@ -251,14 +270,16 @@ function Core.setupHatOrbit(accessory)
     local av=Instance.new("BodyAngularVelocity",handle); av.MaxTorque=Vector3.new(math.huge,math.huge,math.huge); av.P=1250; av.AngularVelocity=Vector3.zero
     Core.orbitData[handle]={accessory=accessory,handle=handle,alignPos=ap,alignOrient=ao,angularVel=av,orbitPart=orbitPart}
     table.insert(Core.handles,handle); table.insert(Core.orbitParts,orbitPart)
-    Core.connections[handle]=accessory.AncestryChanged:Connect(function(_,p) if p~=Core.chr then Core.cleanupHat(handle) end end)
+    Core.connections[handle]=accessory.AncestryChanged:Connect(function(_,p) if p~=getCharacter() then Core.cleanupHat(handle) end end)
     handle.CFrame=orbitPart.CFrame
     task.defer(function() if handle and handle.Parent then handle.CFrame=orbitPart.CFrame end end)
 end
 
 function Core.captureAllowedHats()
-    if not Core.chr then return end; Core.waitForHRP()
-    for _,c in ipairs(Core.chr:GetChildren()) do if Core.isWearable(c) then local h=c:FindFirstChild("Handle"); if h and not Core.orbitData[h] then Core.setupHatOrbit(c) end end end
+    local chr = getCharacter()
+    if not chr then return end
+    Core.waitForHRP()
+    for _,c in ipairs(chr:GetChildren()) do if Core.isWearable(c) then local h=c:FindFirstChild("Handle"); if h and not Core.orbitData[h] then Core.setupHatOrbit(c) end end end
 end
 
 function Core.removeAllHats() for h in pairs(Core.orbitData) do Core.cleanupHat(h) end end
@@ -266,7 +287,7 @@ function Core.removeAllHats() for h in pairs(Core.orbitData) do Core.cleanupHat(
 function Core.setMagnetEnabled(e) Core.MAGNET_ENABLED=e; for _,d in pairs(Core.orbitData) do if d.alignOrient then d.alignOrient.Enabled=e end end end
 
 function Core.resolveAnchor()
-    if Core.GIFT_ENABLED and Core.GIFT_TARGET_NAME~="" then local tp=Players:FindFirstChild(Core.GIFT_TARGET_NAME); local tc=tp and tp.Character; local th=tc and tc:FindFirstChild("HumanoidRootPart"); if th then return th end end; return Core.hrp
+    if Core.GIFT_ENABLED and Core.GIFT_TARGET_NAME~="" then local tp=getPlayers():FindFirstChild(Core.GIFT_TARGET_NAME); local tc=tp and tp.Character; local th=tc and tc:FindFirstChild("HumanoidRootPart"); if th then return th end end; return getHRP()
 end
 
 function Core.getHatHandlesSorted() local s={} for h in pairs(Core.orbitData) do table.insert(s,h) end; table.sort(s,function(a,b) return a.Name<b.Name end); return s end
@@ -288,7 +309,8 @@ end
 function Core.setHoldSlotEnabled(slotIdx, enabled)
     local slot=Core.HOLD_SLOTS[slotIdx]; local hats=Core.holdSlotHats[slotIdx]; slot.USE=enabled
     if not enabled then if hats.left then Core.heldHats[hats.left.handle]=nil end if hats.right then Core.heldHats[hats.right.handle]=nil end hats.left=nil; hats.right=nil return end
-    if not Core.chr or not Core.chr:FindFirstChild("LeftHand") or not Core.chr:FindFirstChild("RightHand") then slot.USE=false return end
+    local chr = getCharacter()
+    if not chr or not chr:FindFirstChild("LeftHand") or not chr:FindFirstChild("RightHand") then slot.USE=false return end
     local s=Core.getHatHandlesSorted()
     if #s<math.max(slot.LIDX,slot.RIDX) then slot.USE=false return end
     for _,pick in ipairs({{side="left",idx=slot.LIDX},{side="right",idx=slot.RIDX}}) do
@@ -300,7 +322,8 @@ end
 function Core.setDLazerHoldEnabled(enabled)
     Core.USE_DLAZER_HOLD=enabled
     if not enabled then if Core.dlazerHats.left then Core.heldHats[Core.dlazerHats.left.handle]=nil end if Core.dlazerHats.right then Core.heldHats[Core.dlazerHats.right.handle]=nil end Core.dlazerHats={} return end
-    if not Core.chr or not Core.chr:FindFirstChild("LeftHand") or not Core.chr:FindFirstChild("RightHand") then Core.USE_DLAZER_HOLD=false return end
+    local chr = getCharacter()
+    if not chr or not chr:FindFirstChild("LeftHand") or not chr:FindFirstChild("RightHand") then Core.USE_DLAZER_HOLD=false return end
     local s=Core.getHatHandlesSorted()
     if #s<math.max(Core.DLAZER_LEFT_INDEX,Core.DLAZER_RIGHT_INDEX) then Core.USE_DLAZER_HOLD=false return end
     for _,pick in ipairs({{side="left",idx=Core.DLAZER_LEFT_INDEX},{side="right",idx=Core.DLAZER_RIGHT_INDEX}}) do
@@ -318,7 +341,8 @@ end
 function Core.setFireballHoldEnabled(enabled)
     Core.USE_FIREBALL_HOLD=enabled; Core.ensureFireballStructure()
     if not enabled then if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end Core.fireballHats.left={}; Core.fireballHats.right={} return end
-    if not Core.chr or not Core.chr:FindFirstChild("LeftHand") or not Core.chr:FindFirstChild("RightHand") then Core.USE_FIREBALL_HOLD=false return end
+    local chr = getCharacter()
+    if not chr or not chr:FindFirstChild("LeftHand") or not chr:FindFirstChild("RightHand") then Core.USE_FIREBALL_HOLD=false return end
     local s=Core.getHatHandlesSorted()
     if #s<math.max(Core.FIREBALL_LEFT_INDEX,Core.FIREBALL_RIGHT_INDEX) then Core.USE_FIREBALL_HOLD=false return end
     if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end
@@ -336,7 +360,7 @@ function Core.setFireballHoldEnabled(enabled)
 end
 
 -- ════════════════════════════════════════════════════════
--- UPDATE FUNCTIONS (Shield, Hold, Dlazer, Fireball, Wing)
+-- UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════
 function Core.updateShield(dt)
     if not Core.USE_SHIELD then return end; if not (Core.shieldHats.left or Core.shieldHats.right) then return end
@@ -353,8 +377,10 @@ end
 
 function Core.updateHoldSlot(slotIdx)
     local slot=Core.HOLD_SLOTS[slotIdx]; local hats=Core.holdSlotHats[slotIdx]
-    if not slot.USE then return end; if not (hats.left or hats.right) then return end; if not Core.chr then return end
-    local lh=Core.chr:FindFirstChild("LeftHand"); local rh=Core.chr:FindFirstChild("RightHand"); if not lh or not rh then return end
+    if not slot.USE then return end; if not (hats.left or hats.right) then return end
+    local chr = getCharacter()
+    if not chr then return end
+    local lh=chr:FindFirstChild("LeftHand"); local rh=chr:FindFirstChild("RightHand"); if not lh or not rh then return end
     local rot=CFrame.Angles(math.rad(slot.RX),math.rad(slot.RY),math.rad(slot.RZ))
     local ld=hats.left
     if ld and ld.handle and ld.handle.Parent and ld.data and ld.data.orbitPart then ld.data.orbitPart.CFrame=lh.CFrame*CFrame.new(slot.LOFF,slot.HGT,slot.DIST)*rot end
@@ -363,8 +389,10 @@ function Core.updateHoldSlot(slotIdx)
 end
 
 function Core.updateDLazerHold(dt)
-    if not Core.USE_DLAZER_HOLD then return end; if not (Core.dlazerHats.left or Core.dlazerHats.right) then return end; if not Core.chr then return end
-    local lh=Core.chr:FindFirstChild("LeftHand"); local rh=Core.chr:FindFirstChild("RightHand"); if not lh or not rh then return end
+    if not Core.USE_DLAZER_HOLD then return end; if not (Core.dlazerHats.left or Core.dlazerHats.right) then return end
+    local chr = getCharacter()
+    if not chr then return end
+    local lh=chr:FindFirstChild("LeftHand"); local rh=chr:FindFirstChild("RightHand"); if not lh or not rh then return end
     Core.dlazerShootAngle=(Core.dlazerShootAngle+math.rad(Core.DLAZER_SHOOT_SPEED)*dt)%(math.pi*2)
     Core.dlazerOrbitAngle=(Core.dlazerOrbitAngle+math.rad(Core.DLAZER_ORBIT_SPEED)*dt)%(math.pi*2)
     local rot=CFrame.Angles(math.rad(Core.DLAZER_ROT_X),math.rad(Core.DLAZER_ROT_Y),math.rad(Core.DLAZER_ROT_Z))
@@ -393,7 +421,8 @@ end
 function Core.setFireballHoldEnabled(enabled)
     Core.USE_FIREBALL_HOLD=enabled; Core.ensureFireballStructure()
     if not enabled then if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end Core.fireballHats.left={}; Core.fireballHats.right={} return end
-    if not Core.chr or not Core.chr:FindFirstChild("LeftHand") or not Core.chr:FindFirstChild("RightHand") then Core.USE_FIREBALL_HOLD=false return end
+    local chr = getCharacter()
+    if not chr or not chr:FindFirstChild("LeftHand") or not chr:FindFirstChild("RightHand") then Core.USE_FIREBALL_HOLD=false return end
     local s=Core.getHatHandlesSorted()
     if #s<math.max(Core.FIREBALL_LEFT_INDEX,Core.FIREBALL_RIGHT_INDEX) then Core.USE_FIREBALL_HOLD=false return end
     if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end
@@ -411,8 +440,10 @@ function Core.setFireballHoldEnabled(enabled)
 end
 
 function Core.updateFireballHold(dt)
-    if not Core.USE_FIREBALL_HOLD then return end; Core.ensureFireballStructure(); if not Core.chr then Core.USE_FIREBALL_HOLD=false return end
-    local lh=Core.chr:FindFirstChild("LeftHand"); local rh=Core.chr:FindFirstChild("RightHand"); if not lh or not rh then Core.USE_FIREBALL_HOLD=false return end
+    if not Core.USE_FIREBALL_HOLD then return end; Core.ensureFireballStructure()
+    local chr = getCharacter()
+    if not chr then Core.USE_FIREBALL_HOLD=false return end
+    local lh=chr:FindFirstChild("LeftHand"); local rh=chr:FindFirstChild("RightHand"); if not lh or not rh then Core.USE_FIREBALL_HOLD=false return end
     local leftOk=Core.fireballHats.left and Core.fireballHats.left.handle and Core.fireballHats.left.handle.Parent
     local rightOk=Core.fireballHats.right and Core.fireballHats.right.handle and Core.fireballHats.right.handle.Parent
     if not leftOk and not rightOk then Core.USE_FIREBALL_HOLD=false; if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end Core.fireballHats.left={}; Core.fireballHats.right={} return end
@@ -483,30 +514,34 @@ function Core.startRenderLoop()
         local cr=math.cos(rot); local sr=math.sin(rot); return x*cr-y*sr, x*sr+y*cr
     end
 
-    RunService.RenderStepped:Connect(function(dt)
-        if not Core.isActive then return end; if not Core.hrp or not Core.hrp.Parent then Core.chr=Core.plr.Character; Core.hrp=Core.chr and Core.chr:FindFirstChild("HumanoidRootPart"); return end
+    getRunService().RenderStepped:Connect(function(dt)
+        if not Core.isActive then return end
+        if not Core.hrp or not Core.hrp.Parent then
+            Core.hrp = getHRP()
+            return
+        end
         
-        Core.outerOrbitAngle=(Core.outerOrbitAngle+math.rad(Core.ORBIT_SPEED)*dt)%(math.pi*2)
-        Core.outerSpinAngle=(Core.outerSpinAngle+math.rad(Core.SPIN_SPEED*60)*dt)%(math.pi*2)
-        Core.outerSplitAngle=(Core.outerSplitAngle-math.rad(Core.ORBIT_SPEED)*dt)%(math.pi*2)
+        Core.outerOrbitAngle=(Core.outerOrbitAngle+math.rad(Core.ORBIT_SPEED)*dt)%TWO_PI
+        Core.outerSpinAngle=(Core.outerSpinAngle+math.rad(Core.SPIN_SPEED*60)*dt)%TWO_PI
+        Core.outerSplitAngle=(Core.outerSplitAngle-math.rad(Core.ORBIT_SPEED)*dt)%TWO_PI
         
         if Core.USE_OUTER2 then
-            Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%(math.pi*2)
-            if not Core.USE_WING then Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%(math.pi*2) end
-            Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%(math.pi*2)
+            Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
+            if not Core.USE_WING then Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI end
+            Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
             Core.updateWingMode(dt)
         end
-        if Core.USE_OUTER3 then Core.outer3OrbitAngle=(Core.outer3OrbitAngle+math.rad(Core.OUTER3_SPEED)*dt)%(math.pi*2); Core.outer3SpinAngle=(Core.outer3SpinAngle+math.rad(Core.OUTER3_SPIN*60)*dt)%(math.pi*2); Core.outer3SplitAngle=(Core.outer3SplitAngle-math.rad(Core.OUTER3_SPEED)*dt)%(math.pi*2) end
-        if Core.USE_OUTER4 then Core.outer4OrbitAngle=(Core.outer4OrbitAngle+math.rad(Core.OUTER4_SPEED)*dt)%(math.pi*2); Core.outer4SpinAngle=(Core.outer4SpinAngle+math.rad(Core.OUTER4_SPIN*60)*dt)%(math.pi*2); Core.outer4SplitAngle=(Core.outer4SplitAngle-math.rad(Core.OUTER4_SPEED)*dt)%(math.pi*2) end
+        if Core.USE_OUTER3 then Core.outer3OrbitAngle=(Core.outer3OrbitAngle+math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI; Core.outer3SpinAngle=(Core.outer3SpinAngle+math.rad(Core.OUTER3_SPIN*60)*dt)%TWO_PI; Core.outer3SplitAngle=(Core.outer3SplitAngle-math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI end
+        if Core.USE_OUTER4 then Core.outer4OrbitAngle=(Core.outer4OrbitAngle+math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI; Core.outer4SpinAngle=(Core.outer4SpinAngle+math.rad(Core.OUTER4_SPIN*60)*dt)%TWO_PI; Core.outer4SplitAngle=(Core.outer4SplitAngle-math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI end
         
         if Core.USE_INNER_RING then
-            Core.innerOrbitAngle=(Core.innerOrbitAngle+math.rad(Core.INNER_ORBIT_SPEED)*dt)%(math.pi*2); Core.innerSpinAngle=(Core.innerSpinAngle+math.rad(Core.INNER_SPIN_SPEED*60)*dt)%(math.pi*2)
-            if Core.INNER_MODE=="Lazer" or Core.INNER_MODE=="DoubleLazer" then Core.innerLazerAngle=(Core.innerLazerAngle+math.rad(Core.INNER_LAZER_SPEED)*dt)%(math.pi*2); Core.lazerOrbitAngle=(Core.lazerOrbitAngle+math.rad(Core.INNER_LAZER_ORBIT_SPEED)*dt)%(math.pi*2) end
-            if Core.INNER_MODE=="Fireball" then Core.fireballZAngle=(Core.fireballZAngle+math.rad(Core.FB_ORBIT_SPEED)*dt)%(math.pi*2); Core.fireballYAngle=(Core.fireballYAngle+math.rad(Core.FB_Y_SPIN_SPEED)*dt)%(math.pi*2); Core.fireballPulse=(Core.fireballPulse+math.rad(Core.FB_SHOOT_SPEED)*dt)%(math.pi*2) end
-            if Core.INNER_MODE=="DoubleStar" then Core.dsZAngle=(Core.dsZAngle+math.rad(Core.DS_ORBIT_SPEED)*dt)%(math.pi*2); Core.dsYAngle=(Core.dsYAngle+math.rad(Core.DS_Y_SPIN_SPEED)*dt)%(math.pi*2); Core.dsCenterAngle=(Core.dsCenterAngle+math.rad(Core.DS_CENTER_SPEED)*dt)%(math.pi*2) end
+            Core.innerOrbitAngle=(Core.innerOrbitAngle+math.rad(Core.INNER_ORBIT_SPEED)*dt)%TWO_PI; Core.innerSpinAngle=(Core.innerSpinAngle+math.rad(Core.INNER_SPIN_SPEED*60)*dt)%TWO_PI
+            if Core.INNER_MODE=="Lazer" or Core.INNER_MODE=="DoubleLazer" then Core.innerLazerAngle=(Core.innerLazerAngle+math.rad(Core.INNER_LAZER_SPEED)*dt)%TWO_PI; Core.lazerOrbitAngle=(Core.lazerOrbitAngle+math.rad(Core.INNER_LAZER_ORBIT_SPEED)*dt)%TWO_PI end
+            if Core.INNER_MODE=="Fireball" then Core.fireballZAngle=(Core.fireballZAngle+math.rad(Core.FB_ORBIT_SPEED)*dt)%TWO_PI; Core.fireballYAngle=(Core.fireballYAngle+math.rad(Core.FB_Y_SPIN_SPEED)*dt)%TWO_PI; Core.fireballPulse=(Core.fireballPulse+math.rad(Core.FB_SHOOT_SPEED)*dt)%TWO_PI end
+            if Core.INNER_MODE=="DoubleStar" then Core.dsZAngle=(Core.dsZAngle+math.rad(Core.DS_ORBIT_SPEED)*dt)%TWO_PI; Core.dsYAngle=(Core.dsYAngle+math.rad(Core.DS_Y_SPIN_SPEED)*dt)%TWO_PI; Core.dsCenterAngle=(Core.dsCenterAngle+math.rad(Core.DS_CENTER_SPEED)*dt)%TWO_PI end
         end
         
-        Core.shootOutAngle=(Core.shootOutAngle+math.rad(Core.SHOOT_OUT_SPEED)*dt)%(math.pi*2)
+        Core.shootOutAngle=(Core.shootOutAngle+math.rad(Core.SHOOT_OUT_SPEED)*dt)%TWO_PI
         
         Core.updateShield(dt)
         for i=1,10 do Core.updateHoldSlot(i) end
@@ -545,7 +580,7 @@ function Core.startRenderLoop()
                 elseif availOuterIdx<=o2c+o3c+o4c then ringCount=o4c; ringIdx=availOuterIdx-o2c-o3c-1; ringAngle=Core.outer4OrbitAngle; ringSplitAngle=Core.outer4SplitAngle; ringSplitRatio=Core.OUTER4_SPLIT_RATIO; ringRot=math.rad(Core.OUTER4_ROTATION); cp=a.Position+b*Core.OUTER4_DISTANCE+u*Core.OUTER4_HEIGHT; axisU,axisV=u4,v4; ringRadius=Core.OUTER4_RADIUS; useSplit=Core.USE_OUTER4_SPLIT; splitRatio=Core.OUTER4_SPLIT_RATIO; useShootOut=false
                 else ringCount=o1c; ringIdx=availOuterIdx-o2c-o3c-o4c-1; ringAngle=Core.outerOrbitAngle; ringSplitAngle=Core.outerSplitAngle; ringSplitRatio=Core.SPLIT_RATIO; ringRot=math.rad(Core.ORBIT_ROTATION); cp=a.Position+b*Core.DISTANCE+u*Core.HEIGHT_OFFSET; axisU,axisV=u1,v1; ringRadius=Core.ORBIT_RADIUS; useSplit=Core.USE_SPLIT; splitRatio=Core.SPLIT_RATIO; useShootOut=Core.USE_SHOOT_OUT; shootOutRange=Core.SHOOT_OUT_RANGE; shootOutSpeed=Core.SHOOT_OUT_SPEED; shootOutOrbitSpeed=Core.SHOOT_OUT_ORBIT_SPEED end
                 
-                if useShootOut then local hatAngle=(2*math.pi/ringCount)*ringIdx+ringAngle; local shootOutProgress=(math.sin(Core.shootOutAngle)+1)*0.5; local radialDistance=ringRadius+shootOutProgress*shootOutRange; local orbitAngle=ringAngle; if Core.USE_SHOOT_OUT_ORBIT then orbitAngle=ringAngle+(shootOutOrbitSpeed/60)*tick()%(math.pi*2) end; local dirX=math.cos(hatAngle); local dirY=math.sin(hatAngle); if Core.USE_SHOOT_OUT_ORBIT then local cosO=math.cos(orbitAngle-ringAngle); local sinO=math.sin(orbitAngle-ringAngle); local rotatedX=dirX*cosO-dirY*sinO; local rotatedY=dirX*sinO+dirY*cosO; dirX,dirY=rotatedX,rotatedY end; tp=cp+axisU*(dirX*radialDistance)+axisV*(dirY*radialDistance)
+                if useShootOut then local hatAngle=(2*math.pi/ringCount)*ringIdx+ringAngle; local shootOutProgress=(math.sin(Core.shootOutAngle)+1)*0.5; local radialDistance=ringRadius+shootOutProgress*shootOutRange; local orbitAngle=ringAngle; if Core.USE_SHOOT_OUT_ORBIT then orbitAngle=ringAngle+(shootOutOrbitSpeed/60)*tick()%TWO_PI end; local dirX=math.cos(hatAngle); local dirY=math.sin(hatAngle); if Core.USE_SHOOT_OUT_ORBIT then local cosO=math.cos(orbitAngle-ringAngle); local sinO=math.sin(orbitAngle-ringAngle); local rotatedX=dirX*cosO-dirY*sinO; local rotatedY=dirX*sinO+dirY*cosO; dirX,dirY=rotatedX,rotatedY end; tp=cp+axisU*(dirX*radialDistance)+axisV*(dirY*radialDistance)
                 elseif useSplit then local sc=math.floor(ringCount*splitRatio); local fwd=ringIdx<sc; local ri=fwd and ringIdx or (ringIdx-sc); local ang=fwd and ringAngle or ringSplitAngle; local cap=fwd and sc or (ringCount-sc); local a2=(2*math.pi/math.max(cap,1))*ri+ang; tp=cp+axisU*math.cos(a2)*ringRadius+axisV*math.sin(a2)*ringRadius
                 else local ang=(2*math.pi/math.max(ringCount,1))*ringIdx+ringAngle; tp=cp+axisU*math.cos(ang)*ringRadius+axisV*math.sin(ang)*ringRadius end
                 
@@ -579,8 +614,12 @@ function Core.onChar(c)
     end)
 end
 
-if Core.plr.Character then Core.onChar(Core.plr.Character) end
-Core.plr.CharacterAdded:Connect(Core.onChar)
+-- Initialize character after player is ready
+task.spawn(function()
+    local chr = getCharacter()
+    Core.onChar(chr)
+    getPlayer().CharacterAdded:Connect(Core.onChar)
+end)
 
 -- ═══════════════════════════════════════════════════════
 -- INIT
