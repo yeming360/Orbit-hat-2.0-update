@@ -1,4 +1,4 @@
-print("🟢 Hat Orbit v9.9.7 loading...")
+print("🟢 Hat Orbit v9.9.8 loading...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -15,16 +15,17 @@ local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
 local DISTANCE, ORBIT_RADIUS, ORBIT_SPEED, ORBIT_MODE = 5, 3, 60, "Y"
 local HEIGHT_OFFSET, SPIN_SPEED, ORBIT_ROTATION = 2, 1, 0
 
--- OUTER RING 2 (with WING MODE)
+-- OUTER RING 2 (with FULL 3-AXIS WING MODE)
 local USE_OUTER2, OUTER2_COUNT, OUTER2_MODE = false, 4, "X"
 local OUTER2_DISTANCE, OUTER2_RADIUS, OUTER2_SPEED = 5, 3, 60
 local OUTER2_HEIGHT, OUTER2_SPIN, OUTER2_ROTATION = 2, 1, 0
 
--- WING MODE (Outer Ring 2 only)
+-- WING MODE (Outer Ring 2 only) - FULL 3 AXIS
 local USE_WING = false
-local WING_MIN_AXIS = -40  -- Minimum Y-axis rotation (degrees)
-local WING_MAX_AXIS = 40   -- Maximum Y-axis rotation (degrees)
-local WING_SPEED = 30      -- Oscillation speed
+local WING_MIN_X = -40; local WING_MAX_X = 40
+local WING_MIN_Y = -40; local WING_MAX_Y = 40
+local WING_MIN_Z = -40; local WING_MAX_Z = 40
+local WING_SPEED_X = 30; local WING_SPEED_Y = 30; local WING_SPEED_Z = 30
 
 -- OUTER RING 3
 local USE_OUTER3, OUTER3_COUNT, OUTER3_MODE = false, 4, "Y"
@@ -114,9 +115,9 @@ local dlazerHats, dlazerShootAngle, dlazerOrbitAngle = {}, 0, 0
 local fireballHats, fireballHoldZAngle, fireballHoldYAngle, fireballHoldPulse = {left={}, right={}}, 0, 0, 0
 local shootOutAngle = 0
 
--- WING MODE STATE
-local wingAngle = 0
-local wingDirection = 1
+-- WING MODE STATE (3 axes)
+local wingAngleX, wingAngleY, wingAngleZ = 0, 0, 0
+local wingDirX, wingDirY, wingDirZ = 1, 1, 1
 
 -- HELPERS
 local function waitForHRP()
@@ -325,24 +326,35 @@ local function updateFireballHold(dt)
     else if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.right={} end
 end
 
--- WING MODE UPDATE (Outer Ring 2 only)
+-- WING MODE UPDATE (3 AXES)
 local function updateWingMode(dt)
     if not USE_WING or not USE_OUTER2 then return end
     
-    -- Oscillate between min/max
-    local minRad = math.rad(WING_MIN_AXIS)
-    local maxRad = math.rad(WING_MAX_AXIS)
-    local range = maxRad - minRad
+    -- X Axis
+    if WING_MAX_X ~= WING_MIN_X then
+        local minRad = math.rad(WING_MIN_X)
+        local maxRad = math.rad(WING_MAX_X)
+        wingAngleX = wingAngleX + (math.rad(WING_SPEED_X) * dt * wingDirX)
+        if wingAngleX >= maxRad then wingAngleX = maxRad; wingDirX = -1
+        elseif wingAngleX <= minRad then wingAngleX = minRad; wingDirX = 1 end
+    end
     
-    wingAngle = wingAngle + (math.rad(WING_SPEED) * dt * wingDirection)
+    -- Y Axis
+    if WING_MAX_Y ~= WING_MIN_Y then
+        local minRad = math.rad(WING_MIN_Y)
+        local maxRad = math.rad(WING_MAX_Y)
+        wingAngleY = wingAngleY + (math.rad(WING_SPEED_Y) * dt * wingDirY)
+        if wingAngleY >= maxRad then wingAngleY = maxRad; wingDirY = -1
+        elseif wingAngleY <= minRad then wingAngleY = minRad; wingDirY = 1 end
+    end
     
-    -- Bounce at limits
-    if wingAngle >= maxRad then
-        wingAngle = maxRad
-        wingDirection = -1
-    elseif wingAngle <= minRad then
-        wingAngle = minRad
-        wingDirection = 1
+    -- Z Axis
+    if WING_MAX_Z ~= WING_MIN_Z then
+        local minRad = math.rad(WING_MIN_Z)
+        local maxRad = math.rad(WING_MAX_Z)
+        wingAngleZ = wingAngleZ + (math.rad(WING_SPEED_Z) * dt * wingDirZ)
+        if wingAngleZ >= maxRad then wingAngleZ = maxRad; wingDirZ = -1
+        elseif wingAngleZ <= minRad then wingAngleZ = minRad; wingDirZ = 1 end
     end
 end
 
@@ -365,9 +377,9 @@ RunService.RenderStepped:Connect(function(dt)
     outerSplitAngle=(outerSplitAngle-math.rad(ORBIT_SPEED)*dt)%TWO_PI
     if USE_OUTER2 then
         outer2OrbitAngle=(outer2OrbitAngle+math.rad(OUTER2_SPEED)*dt)%TWO_PI
-        if not USE_WING then outer2SpinAngle=(outer2SpinAngle+math.rad(OUTER2_SPIN*60)*dt)%TWO_PI end -- Disable spin when wing active
+        if not USE_WING then outer2SpinAngle=(outer2SpinAngle+math.rad(OUTER2_SPIN*60)*dt)%TWO_PI end
         outer2SplitAngle=(outer2SplitAngle-math.rad(OUTER2_SPEED)*dt)%TWO_PI
-        updateWingMode(dt) -- Update wing oscillation
+        updateWingMode(dt)
     end
     if USE_OUTER3 then outer3OrbitAngle=(outer3OrbitAngle+math.rad(OUTER3_SPEED)*dt)%TWO_PI; outer3SpinAngle=(outer3SpinAngle+math.rad(OUTER3_SPIN*60)*dt)%TWO_PI; outer3SplitAngle=(outer3SplitAngle-math.rad(OUTER3_SPEED)*dt)%TWO_PI end
     if USE_OUTER4 then outer4OrbitAngle=(outer4OrbitAngle+math.rad(OUTER4_SPEED)*dt)%TWO_PI; outer4SpinAngle=(outer4SpinAngle+math.rad(OUTER4_SPIN*60)*dt)%TWO_PI; outer4SplitAngle=(outer4SplitAngle-math.rad(OUTER4_SPEED)*dt)%TWO_PI end
@@ -411,15 +423,15 @@ RunService.RenderStepped:Connect(function(dt)
             elseif useSplit then local sc=math.floor(ringCount*splitRatio); local fwd=ringIdx<sc; local ri=fwd and ringIdx or (ringIdx-sc); local ang=fwd and ringAngle or ringSplitAngle; local cap=fwd and sc or (ringCount-sc); local a2=(2*math.pi/math.max(cap,1))*ri+ang; tp=cp+axisU*math.cos(a2)*ringRadius+axisV*math.sin(a2)*ringRadius
             else local ang=(2*math.pi/math.max(ringCount,1))*ringIdx+ringAngle; tp=cp+axisU*math.cos(ang)*ringRadius+axisV*math.sin(ang)*ringRadius end
             
-            -- WING MODE: Apply Y-axis tilt to Outer Ring 2 hats
+            -- WING MODE: Apply 3-axis rotation to Outer Ring 2 hats
             if isO2 and USE_WING then
-                local wingTilt = CFrame.Angles(wingAngle, 0, 0) -- Tilt on X-axis (Y-axis rotation in world)
-                tp = (tp - cp) + cp -- Keep position, apply rotation
-                op.CFrame = CFrame.new(tp) * wingTilt
+                local wingCFrame = CFrame.Angles(wingAngleX, wingAngleY, wingAngleZ)
+                tp = (tp - cp) + cp
+                op.CFrame = CFrame.new(tp) * wingCFrame
             end
         end
         op.Position = op.Position:Lerp(tp, alpha)
-        if not (isO2 and USE_WING) then -- Skip magnet orientation if wing mode active
+        if not (isO2 and USE_WING) then
             if MAGNET_ENABLED then local lk=CF_LOOKAT(tp,a.Position); local sa=isIn and innerSpinAngle or (isO2 and outer2SpinAngle or (isO3 and outer3SpinAngle or (isO4 and outer4SpinAngle or outerSpinAngle))); local sc=CF_ID; if SPIN_MODE=="Y" then sc=CF_ANGLES(0,sa,0) elseif SPIN_MODE=="X" then sc=CF_ANGLES(sa,0,0) elseif SPIN_MODE=="Z" then sc=CF_ANGLES(0,0,sa) end; op.CFrame=lk*sc; if d.angularVel then d.angularVel.AngularVelocity=V3_ZERO end else op.CFrame=CF_NEW(tp); if d.angularVel then d.angularVel.AngularVelocity=spinVec end end
         end
     end
@@ -429,13 +441,13 @@ end)
 local function onChar(c) chr=c; hrp=c:WaitForChild("HumanoidRootPart"); removeAllHats(); task.wait(0.3); captureAllowedHats(); c.ChildAdded:Connect(function(ch) task.wait(); if isWearable(ch) then setupHatOrbit(ch) end end) end
 if plr.Character then onChar(plr.Character) end; plr.CharacterAdded:Connect(onChar)
 
--- GUI (Complete with Wing Mode)
+-- GUI (Complete with 3-Axis Wing Mode)
 local function createGUI()
     local screenGui=Instance.new("ScreenGui"); screenGui.Name="HatOrbitUI"; screenGui.ResetOnSpawn=false; screenGui.Parent=plr:WaitForChild("PlayerGui")
-    local main=Instance.new("Frame",screenGui); main.Size=UDim2.new(0,280,0,580); main.Position=UDim2.new(0.5,-140,0.5,-290); main.BackgroundColor3=Color3.fromRGB(18,18,22); main.BackgroundTransparency=0.08; main.BorderSizePixel=0; main.Active=true; main.Draggable=true; Instance.new("UICorner",main).CornerRadius=UDim.new(0,10)
+    local main=Instance.new("Frame",screenGui); main.Size=UDim2.new(0,280,0,600); main.Position=UDim2.new(0.5,-140,0.5,-300); main.BackgroundColor3=Color3.fromRGB(18,18,22); main.BackgroundTransparency=0.08; main.BorderSizePixel=0; main.Active=true; main.Draggable=true; Instance.new("UICorner",main).CornerRadius=UDim.new(0,10)
     local uiScale=Instance.new("UIScale",main); uiScale.Scale=GUI_SCALE
     local bar=Instance.new("Frame",main); bar.Size=UDim2.new(1,0,0,34); bar.BackgroundColor3=Color3.fromRGB(28,28,35); bar.BorderSizePixel=0; bar.ZIndex=2; Instance.new("UICorner",bar).CornerRadius=UDim.new(0,10)
-    local title=Instance.new("TextLabel",bar); title.Size=UDim2.new(1,-50,1,0); title.Position=UDim2.new(0,14,0,0); title.BackgroundTransparency=1; title.Text="🔥 Hat Orbit v9.9.7"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=13; title.TextXAlignment=Enum.TextXAlignment.Left; title.ZIndex=3
+    local title=Instance.new("TextLabel",bar); title.Size=UDim2.new(1,-50,1,0); title.Position=UDim2.new(0,14,0,0); title.BackgroundTransparency=1; title.Text="🔥 Hat Orbit v9.9.8"; title.TextColor3=Color3.new(1,1,1); title.Font=Enum.Font.GothamBold; title.TextSize=13; title.TextXAlignment=Enum.TextXAlignment.Left; title.ZIndex=3
     local powerBtn=Instance.new("TextButton",bar); powerBtn.Size=UDim2.new(0,34,0,24); powerBtn.Position=UDim2.new(1,-68,0.5,-12); powerBtn.Text="⏻"; powerBtn.BackgroundColor3=Color3.fromRGB(60,200,60); powerBtn.TextColor3=Color3.new(1,1,1); powerBtn.Font=Enum.Font.GothamBold; powerBtn.TextSize=16; powerBtn.ZIndex=3; Instance.new("UICorner",powerBtn).CornerRadius=UDim.new(0,5)
     local closeBtn=Instance.new("TextButton",bar); closeBtn.Size=UDim2.new(0,24,0,24); closeBtn.Position=UDim2.new(1,-30,0.5,-12); closeBtn.Text="✕"; closeBtn.BackgroundColor3=Color3.fromRGB(200,45,45); closeBtn.TextColor3=Color3.new(1,1,1); closeBtn.Font=Enum.Font.GothamBold; closeBtn.TextSize=13; closeBtn.ZIndex=3; Instance.new("UICorner",closeBtn).CornerRadius=UDim.new(0,5); closeBtn.MouseButton1Click:Connect(function() isActive=false; removeAllHats(); screenGui:Destroy() end)
     local scrollFrame=Instance.new("ScrollingFrame",main); scrollFrame.Position=UDim2.new(0,0,0,34); scrollFrame.Size=UDim2.new(1,0,1,-34); scrollFrame.BackgroundTransparency=1; scrollFrame.BorderSizePixel=0; scrollFrame.ScrollBarThickness=4; scrollFrame.ScrollBarImageColor3=Color3.fromRGB(100,100,110); scrollFrame.VerticalScrollBarInset=Enum.ScrollBarInset.ScrollBar; scrollFrame.ZIndex=2; Instance.new("UICorner",scrollFrame).CornerRadius=UDim.new(0,6)
@@ -485,7 +497,7 @@ local function createGUI()
     addSlider("🌀 Orbit Speed",-10000,10000,SHOOT_OUT_ORBIT_SPEED,10,function(v) SHOOT_OUT_ORBIT_SPEED=v end)
     addTog("🌍 Orbit While Shoot",function() return USE_SHOOT_OUT_ORBIT end,function() USE_SHOOT_OUT_ORBIT=not USE_SHOOT_OUT_ORBIT end,{text="🌍 ON",bg=Color3.fromRGB(0,150,100)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
 
-    -- OUTER RING 2 (with WING MODE)
+    -- OUTER RING 2 (with 3-AXIS WING MODE)
     addSec("── Outer Ring 2 ──")
     addTog("🔘 Outer Ring 2",function() return USE_OUTER2 end,function() USE_OUTER2=not USE_OUTER2 end,{text="🔵 ON",bg=Color3.fromRGB(60,150,220)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("👤 Count",1,16,OUTER2_COUNT,1,function(v) OUTER2_COUNT=math.floor(v) end)
@@ -493,17 +505,32 @@ local function createGUI()
     addSlider("📏 Distance",-10000,10000,OUTER2_DISTANCE,0.5,function(v) OUTER2_DISTANCE=v end)
     addSlider("⭕ Radius",-10000,10000,OUTER2_RADIUS,0.5,function(v) OUTER2_RADIUS=v end)
     addSlider("🌀 Speed",-10000,10000,OUTER2_SPEED,5,function(v) OUTER2_SPEED=v end)
-    addSlider("↕️ Height",-10000,10000,OUTER2_HEIGHT,0.5,function(v) OUTER2_HEIGHT=v end)
+    addSlider("↕︁ Height",-10000,10000,OUTER2_HEIGHT,0.5,function(v) OUTER2_HEIGHT=v end)
     addSlider("💫 Spin",-10000,10000,OUTER2_SPIN,0.5,function(v) OUTER2_SPIN=v end)
     addTog("🔀 Split",function() return USE_OUTER2_SPLIT end,function() USE_OUTER2_SPLIT=not USE_OUTER2_SPLIT end,{text="🔀 ON",bg=Color3.fromRGB(255,170,0)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio",0.1,0.9,OUTER2_SPLIT_RATIO,0.05,function(v) OUTER2_SPLIT_RATIO=v end)
 
-    -- WING MODE SECTION
-    addSec("── 🕊️ Wing Mode (Ring 2) ──")
+    -- WING MODE (3 AXIS)
+    addSec("── 🕊️ Wing Mode (3-Axis) ──")
     addTog("🔘 Wing Mode",function() return USE_WING end,function() USE_WING=not USE_WING end,{text="🕊️ ON",bg=Color3.fromRGB(100,200,255)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
-    addSlider("🕊️ Min Y-Axis",-180,180,WING_MIN_AXIS,1,function(v) WING_MIN_AXIS=math.floor(v) end)
-    addSlider("🕊️ Max Y-Axis",-180,180,WING_MAX_AXIS,1,function(v) WING_MAX_AXIS=math.floor(v) end)
-    addSlider("🕊️ Wing Speed",1,120,WING_SPEED,1,function(v) WING_SPEED=v end)
+    
+    -- X Axis
+    addSec("  X-Axis (Roll)")
+    addSlider("Min X-Axis",-180,180,WING_MIN_X,1,function(v) WING_MIN_X=math.floor(v) end)
+    addSlider("Max X-Axis",-180,180,WING_MAX_X,1,function(v) WING_MAX_X=math.floor(v) end)
+    addSlider("X Speed",1,180,WING_SPEED_X,1,function(v) WING_SPEED_X=v end)
+    
+    -- Y Axis
+    addSec("  Y-Axis (Pitch)")
+    addSlider("Min Y-Axis",-180,180,WING_MIN_Y,1,function(v) WING_MIN_Y=math.floor(v) end)
+    addSlider("Max Y-Axis",-180,180,WING_MAX_Y,1,function(v) WING_MAX_Y=math.floor(v) end)
+    addSlider("Y Speed",1,180,WING_SPEED_Y,1,function(v) WING_SPEED_Y=v end)
+    
+    -- Z Axis
+    addSec("  Z-Axis (Yaw)")
+    addSlider("Min Z-Axis",-180,180,WING_MIN_Z,1,function(v) WING_MIN_Z=math.floor(v) end)
+    addSlider("Max Z-Axis",-180,180,WING_MAX_Z,1,function(v) WING_MAX_Z=math.floor(v) end)
+    addSlider("Z Speed",1,180,WING_SPEED_Z,1,function(v) WING_SPEED_Z=v end)
 
     -- OUTER RING 3
     addSec("── Outer Ring 3 ──")
@@ -513,7 +540,7 @@ local function createGUI()
     addSlider("📏 Distance",-10000,10000,OUTER3_DISTANCE,0.5,function(v) OUTER3_DISTANCE=v end)
     addSlider("⭕ Radius",-10000,10000,OUTER3_RADIUS,0.5,function(v) OUTER3_RADIUS=v end)
     addSlider("🌀 Speed",-10000,10000,OUTER3_SPEED,5,function(v) OUTER3_SPEED=v end)
-    addSlider("↕️ Height",-10000,10000,OUTER3_HEIGHT,0.5,function(v) OUTER3_HEIGHT=v end)
+    addSlider("↕︁ Height",-10000,10000,OUTER3_HEIGHT,0.5,function(v) OUTER3_HEIGHT=v end)
     addSlider("💫 Spin",-10000,10000,OUTER3_SPIN,0.5,function(v) OUTER3_SPIN=v end)
     addTog("🔀 Split",function() return USE_OUTER3_SPLIT end,function() USE_OUTER3_SPLIT=not USE_OUTER3_SPLIT end,{text="🔀 ON",bg=Color3.fromRGB(255,170,0)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio",0.1,0.9,OUTER3_SPLIT_RATIO,0.05,function(v) OUTER3_SPLIT_RATIO=v end)
@@ -526,7 +553,7 @@ local function createGUI()
     addSlider("📏 Distance",-10000,10000,OUTER4_DISTANCE,0.5,function(v) OUTER4_DISTANCE=v end)
     addSlider("⭕ Radius",-10000,10000,OUTER4_RADIUS,0.5,function(v) OUTER4_RADIUS=v end)
     addSlider("🌀 Speed",-10000,10000,OUTER4_SPEED,5,function(v) OUTER4_SPEED=v end)
-    addSlider("↕️ Height",-10000,10000,OUTER4_HEIGHT,0.5,function(v) OUTER4_HEIGHT=v end)
+    addSlider("↕︁ Height",-10000,10000,OUTER4_HEIGHT,0.5,function(v) OUTER4_HEIGHT=v end)
     addSlider("💫 Spin",-10000,10000,OUTER4_SPIN,0.5,function(v) OUTER4_SPIN=v end)
     addTog("🔀 Split",function() return USE_OUTER4_SPLIT end,function() USE_OUTER4_SPLIT=not USE_OUTER4_SPLIT end,{text="🔀 ON",bg=Color3.fromRGB(255,170,0)},{text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio",0.1,0.9,OUTER4_SPLIT_RATIO,0.05,function(v) OUTER4_SPLIT_RATIO=v end)
@@ -542,7 +569,7 @@ local function createGUI()
     addSlider("📏 Distance",-10000,10000,INNER_DISTANCE,0.5,function(v) INNER_DISTANCE=v end)
     addSlider("⭕ Radius",-10000,10000,INNER_ORBIT_RADIUS,0.5,function(v) INNER_ORBIT_RADIUS=v end)
     addSlider("🌀 Speed",-10000,10000,INNER_ORBIT_SPEED,5,function(v) INNER_ORBIT_SPEED=v end)
-    addSlider("↕️ Height",-10000,10000,INNER_HEIGHT_OFFSET,0.5,function(v) INNER_HEIGHT_OFFSET=v end)
+    addSlider("↕︁ Height",-10000,10000,INNER_HEIGHT_OFFSET,0.5,function(v) INNER_HEIGHT_OFFSET=v end)
     addSlider("💫 Spin",-10000,10000,INNER_SPIN_SPEED,0.5,function(v) INNER_SPIN_SPEED=v end)
 
     addSec("── Double Lazer Props ──")
@@ -652,4 +679,4 @@ end
 task.spawn(function() local ok,err=pcall(createGUI); if not ok then warn("GUI Error: "..tostring(err)) end end)
 task.spawn(function() task.wait(1); captureAllowedHats() end)
 
-print("🔥 Hat Orbit v9.9.7 Ready — Wing Mode on Outer Ring 2 — RightShift to toggle GUI")
+print("🔥 Hat Orbit v9.9.8 Ready — 3-Axis Wing Mode on Outer Ring 2 — RightShift to toggle GUI")
