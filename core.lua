@@ -628,6 +628,9 @@ function Core.Init(GUI, Wing)
     Core.GUI = GUI
     Core.Wing = Wing
     
+    -- ADD THIS LINE:
+    GUI.Create(Core)  -- ← MISSING! This creates the GUI
+    
     Core.startRenderLoop()
     
     task.spawn(function()
