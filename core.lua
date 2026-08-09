@@ -649,7 +649,10 @@ function Core.startRenderLoop()
                     Core.orbitParts[i].CFrame = CFrame.new(tp) * wingCFrame
                 end
             end
-            
+            if not (isO2 and Core.USE_WING) then
+    -- magnet logic here
+                end
+                
             Core.orbitParts[i].Position = Core.orbitParts[i].Position:Lerp(tp, alpha)
             if not (isO2 and Core.USE_WING) then
                 if Core.MAGNET_ENABLED then local lk=CF_LOOKAT(tp,a.Position); local sa=isIn and Core.innerSpinAngle or (isO2 and Core.outer2SpinAngle or (isO3 and Core.outer3SpinAngle or (isO4 and Core.outer4SpinAngle or Core.outerSpinAngle))); local sc=CF_ID; if Core.SPIN_MODE=="Y" then sc=CF_ANGLES(0,sa,0) elseif Core.SPIN_MODE=="X" then sc=CF_ANGLES(sa,0,0) elseif Core.SPIN_MODE=="Z" then sc=CF_ANGLES(0,0,sa) end; Core.orbitParts[i].CFrame=lk*sc; if d.angularVel then d.angularVel.AngularVelocity=V3_ZERO end else Core.orbitParts[i].CFrame=CF_NEW(tp); if d.angularVel then d.angularVel.AngularVelocity=spinVec end end
