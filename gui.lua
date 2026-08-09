@@ -329,27 +329,31 @@ function GUI.Create(Core)
     addSec("── 🕊️ Wing Mode (3-Axis) ──")
     addTog("🔘 Wing Mode", function() return Core.USE_WING end, function() Core.USE_WING=not Core.USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    -- Dynamic axis labels based on Spin Axis
-    local function getAxisLabels()
-        local axis = Core.OUTER2_SPIN_MODE
-        if axis == "X" then
-            return "X-Axis (Roll)", "Y-Axis (Pitch)", "Z-Axis (Yaw)"
-        elseif axis == "Y" then
-            return "Y-Axis (Pitch)", "X-Axis (Roll)", "Z-Axis (Yaw)"
-        else
-            return "Z-Axis (Yaw)", "X-Axis (Roll)", "Y-Axis (Pitch)"
-        end
+    -- SAFE axis label helpers
+    local function getSpinMode()
+        local m = Core.OUTER2_SPIN_MODE
+        if m == "X" or m == "Y" or m == "Z" then return m end
+        return "Y"  -- fallback
     end
     
+    local spinMode = getSpinMode()
+    
     -- Primary Axis (matches Spin Axis)
-    local primaryLabel = ({X="X-Axis (Roll)", Y="Y-Axis (Pitch)", Z="Z-Axis (Yaw)"})[Core.OUTER2_SPIN_MODE]
+    local primaryLabel = ({X="X-Axis (Roll)", Y="Y-Axis (Pitch)", Z="Z-Axis (Yaw)"})[spinMode] or "Y-Axis (Pitch)"
     addSec("  "..primaryLabel.." (Primary)")
     addSlider("Min Primary", -180,180, Core.WING_MIN_X, 1, function(v) Core.WING_MIN_X=math.floor(v) end)
     addSlider("Max Primary", -180,180, Core.WING_MAX_X, 1, function(v) Core.WING_MAX_X=math.floor(v) end)
     addSlider("Primary Speed", 1,180, Core.WING_SPEED_X, 1, function(v) Core.WING_SPEED_X=v end)
     
     -- Secondary axes
-    local sec1, sec2 = ({X={"Y-Axis (Pitch)","Z-Axis (Yaw)"}, Y={"X-Axis (Roll)","Z-Axis (Yaw)"}, Z={"X-Axis (Roll)","Y-Axis (Pitch)"}})[Core.OUTER2_SPIN_MODE]
+    local secMap = {
+        X = {"Y-Axis (Pitch)", "Z-Axis (Yaw)"},
+        Y = {"X-Axis (Roll)", "Z-Axis (Yaw)"},
+        Z = {"X-Axis (Roll)", "Y-Axis (Pitch)"}
+    }
+    local secs = secMap[spinMode] or {"X-Axis (Roll)", "Z-Axis (Yaw)"}
+    local sec1, sec2 = secs[1], secs[2]
+    
     addSec("  "..sec1)
     addSlider("Min "..sec1, -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
     addSlider("Max "..sec1, -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
