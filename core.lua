@@ -506,59 +506,52 @@ function Core.updateWingMode(dt)
     if not Core.USE_WING or not Core.USE_OUTER2 then return end
     
     local spinMode = Core.OUTER2_SPIN_MODE
-    local angles = {X=0, Y=0, Z=0}
-    local dirs = {X=Core.wingDirX, Y=Core.wingDirY, Z=Core.wingDirZ}
     
-    -- Map internal angles to axes based on Spin Mode
+    -- Define which axes are primary/secondary/tertiary based on spin mode
+    local primaryAxis, secondaryAxis, tertiaryAxis
     if spinMode == "X" then
-        angles.X = Core.wingAngleX  -- Primary
-        angles.Y = Core.wingAngleY  -- Secondary
-        angles.Z = Core.wingAngleZ  -- Tertiary
+        primaryAxis, secondaryAxis, tertiaryAxis = "X", "Y", "Z"
     elseif spinMode == "Y" then
-        angles.Y = Core.wingAngleX  -- Primary
-        angles.X = Core.wingAngleY  -- Secondary
-        angles.Z = Core.wingAngleZ  -- Tertiary
+        primaryAxis, secondaryAxis, tertiaryAxis = "Y", "X", "Z"
     else -- Z
-        angles.Z = Core.wingAngleX  -- Primary
-        angles.X = Core.wingAngleY  -- Secondary
-        angles.Y = Core.wingAngleZ  -- Tertiary
+        primaryAxis, secondaryAxis, tertiaryAxis = "Z", "X", "Y"
     end
     
-    -- Update each axis
-    for axis, angleRef in pairs({X="wingAngleX", Y="wingAngleY", Z="wingAngleZ"}) do
+    -- Helper to update one axis
+    local function updateAxis(axis)
         local minKey = "WING_MIN_"..axis
         local maxKey = "WING_MAX_"..axis
         local speedKey = "WING_SPEED_"..axis
+        local angleKey = "wingAngle"..axis
         local dirKey = "wingDir"..axis
         
-        if Core[maxKey] ~= Core[minKey] then
-            local minRad = math.rad(Core[minKey])
-            local maxRad = math.rad(Core[maxKey])
-            Core[angleRef] = Core[angleRef] + (math.rad(Core[speedKey]) * dt * Core[dirKey])
-            if Core[angleRef] >= maxRad then Core[angleRef] = maxRad; Core[dirKey] = -1
-            elseif Core[angleRef] <= minRad then Core[angleRef] = minRad; Core[dirKey] = 1 end
+        local minVal = Core[minKey]
+        local maxVal = Core[maxKey]
+        
+        if maxVal ~= minVal and Core[speedKey] and Core[speedKey] > 0 then
+            local minRad = math.rad(minVal)
+            local maxRad = math.rad(maxVal)
+            local speed = math.rad(Core[speedKey])
+            local dir = Core["wingDir"..axis] or 1
+            
+            -- Update angle
+            Core[angleKey] = Core[angleKey] + (speed * dt * dir)
+            
+            -- Bounce at limits
+            if Core[angleKey] >= math.rad(maxVal) then
+                Core[angleKey] = math.rad(maxVal)
+                Core["wingDir"..axis] = -1
+            elseif Core[angleKey] <= math.rad(minVal) then
+                Core[angleKey] = math.rad(minVal)
+                Core["wingDir"..axis] = 1
+            end
         end
     end
     
-    -- Apply mapped angles back
-    if spinMode == "X" then
-        Core.wingAngleX = angles.X
-        Core.wingAngleY = angles.Y
-        Core.wingAngleZ = angles.Z
-    elseif spinMode == "Y" then
-        Core.wingAngleX = angles.Y  -- Primary was Y
-        Core.wingAngleY = angles.X  -- Secondary was X
-        Core.wingAngleZ = angles.Z
-    else -- Z
-        Core.wingAngleX = angles.Y  -- Secondary was X
-        Core.wingAngleY = angles.Z  -- Tertiary was Z
-        Core.wingAngleZ = angles.X  -- Primary was Z
-    end
-    
-    -- Update dirs back
-    Core.wingDirX = dirs.X
-    Core.wingDirY = dirs.Y
-    Core.wingDirZ = dirs.Z
+    -- Update all three axes independently
+    updateAxis("X")
+    updateAxis("Y")
+    updateAxis("Z")
 end
 
 -- ═══════════════════════════════════════════════════════
