@@ -1,19 +1,15 @@
--- core.lua (FIXED VERSION)
+-- core.lua
 local Core = {}
 
--- Services (get lazily)
+-- Services (lazy)
 local function getPlayers() return game:GetService("Players") end
 local function getRunService() return game:GetService("RunService") end
 local function getUserInputService() return game:GetService("UserInputService") end
 
--- Lazy player getter
 local function getPlayer()
     if not Core._player then
         Core._player = getPlayers().LocalPlayer
-        while not Core._player do
-            task.wait()
-            Core._player = getPlayers().LocalPlayer
-        end
+        while not Core._player do task.wait(); Core._player = getPlayers().LocalPlayer end
     end
     return Core._player
 end
@@ -29,7 +25,7 @@ local function getHRP()
 end
 
 -- ═══════════════════════════════════════════════════════
--- SETTINGS (Same as before)
+-- SETTINGS
 -- ═══════════════════════════════════════════════════════
 Core.DISTANCE = 5
 Core.ORBIT_RADIUS = 3
@@ -48,6 +44,7 @@ Core.OUTER2_SPEED = 60
 Core.OUTER2_HEIGHT = 2
 Core.OUTER2_SPIN = 1
 Core.OUTER2_ROTATION = 0
+Core.OUTER2_SPIN_MODE = "Y"  -- NEW
 
 Core.USE_OUTER3 = false
 Core.OUTER3_COUNT = 4
@@ -186,6 +183,8 @@ Core.WING_MIN_Y = -40; Core.WING_MAX_Y = 40
 Core.WING_MIN_Z = -40; Core.WING_MAX_Z = 40
 Core.WING_SPEED_X = 30; Core.WING_SPEED_Y = 30; Core.WING_SPEED_Z = 30
 
+Core.OUTER2_SPIN_MODE = "Y"  -- NEW
+
 -- ═══════════════════════════════════════════════════════
 -- STATE
 -- ═══════════════════════════════════════════════════════
@@ -212,8 +211,30 @@ Core.wingAngleX = 0; Core.wingAngleY = 0; Core.wingAngleZ = 0
 Core.wingDirX = 1; Core.wingDirY = 1; Core.wingDirZ = 1
 
 -- ═══════════════════════════════════════════════════════
--- HELPERS (Use lazy getters)
+-- LAZY GETTERS
 -- ═══════════════════════════════════════════════════════
+local function getPlayers() return game:GetService("Players") end
+local function getRunService() return game:GetService("RunService") end
+local function getUserInputService() return game:GetService("UserInputService") end
+
+local function getPlayer()
+    if not Core._player then
+        Core._player = getPlayers().LocalPlayer
+        while not Core._player do task.wait(); Core._player = getPlayers().LocalPlayer end
+    end
+    return Core._player
+end
+
+local function getCharacter()
+    local plr = getPlayer()
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local chr = getCharacter()
+    return chr:WaitForChild("HumanoidRootPart")
+end
+
 function Core.getPlayer() return getPlayer() end
 function Core.getCharacter() return getCharacter() end
 function Core.getHRP() return getHRP() end
@@ -227,6 +248,9 @@ function Core.isWearable(inst)
     return inst:IsA("Accessory") or inst:IsA("Hat")
 end
 
+-- ═══════════════════════════════════════════════════════
+-- HELPERS
+-- ══════════════════════════════════════════════════════
 function Core.cleanupHat(handle)
     local data = Core.orbitData[handle]; if not data then return end
     if data.alignPos then data.alignPos:Destroy() end
@@ -292,9 +316,9 @@ end
 
 function Core.getHatHandlesSorted() local s={} for h in pairs(Core.orbitData) do table.insert(s,h) end; table.sort(s,function(a,b) return a.Name<b.Name end); return s end
 
--- ════════════════════════════════════════════════════════
--- HOLD MODES
 -- ═══════════════════════════════════════════════════════
+-- HOLD MODES
+-- ══════════════════════════════════════════════════════
 function Core.setShieldEnabled(enabled)
     Core.USE_SHIELD=enabled
     if not enabled then if Core.shieldHats.left then Core.heldHats[Core.shieldHats.left.handle]=nil end if Core.shieldHats.right then Core.heldHats[Core.shieldHats.right.handle]=nil end Core.shieldHats={} return end
@@ -359,9 +383,9 @@ function Core.setFireballHoldEnabled(enabled)
     end
 end
 
--- ════════════════════════════════════════════════════════
--- UPDATE FUNCTIONS
 -- ═══════════════════════════════════════════════════════
+-- UPDATE FUNCTIONS
+-- ══════════════════════════════════════════════════════
 function Core.updateShield(dt)
     if not Core.USE_SHIELD then return end; if not (Core.shieldHats.left or Core.shieldHats.right) then return end
     local a=Core.resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
@@ -475,31 +499,71 @@ function Core.updateFireballHold(dt)
     else if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end Core.fireballHats.right={} end
 end
 
+-- ═══════════════════════════════════════════════════════
+-- WING MODE (Dynamic Axis Mapping)
+-- ══════════════════════════════════════════════════════
 function Core.updateWingMode(dt)
     if not Core.USE_WING or not Core.USE_OUTER2 then return end
-    if Core.WING_MAX_X ~= Core.WING_MIN_X then
-        local minRad = math.rad(Core.WING_MIN_X); local maxRad = math.rad(Core.WING_MAX_X)
-        Core.wingAngleX = Core.wingAngleX + (math.rad(Core.WING_SPEED_X) * dt * Core.wingDirX)
-        if Core.wingAngleX >= maxRad then Core.wingAngleX = maxRad; Core.wingDirX = -1
-        elseif Core.wingAngleX <= minRad then Core.wingAngleX = minRad; Core.wingDirX = 1 end
+    
+    local spinMode = Core.OUTER2_SPIN_MODE
+    local angles = {X=0, Y=0, Z=0}
+    local dirs = {X=Core.wingDirX, Y=Core.wingDirY, Z=Core.wingDirZ}
+    
+    -- Map internal angles to axes based on Spin Mode
+    if spinMode == "X" then
+        angles.X = Core.wingAngleX  -- Primary
+        angles.Y = Core.wingAngleY  -- Secondary
+        angles.Z = Core.wingAngleZ  -- Tertiary
+    elseif spinMode == "Y" then
+        angles.Y = Core.wingAngleX  -- Primary
+        angles.X = Core.wingAngleY  -- Secondary
+        angles.Z = Core.wingAngleZ  -- Tertiary
+    else -- Z
+        angles.Z = Core.wingAngleX  -- Primary
+        angles.X = Core.wingAngleY  -- Secondary
+        angles.Y = Core.wingAngleZ  -- Tertiary
     end
-    if Core.WING_MAX_Y ~= Core.WING_MIN_Y then
-        local minRad = math.rad(Core.WING_MIN_Y); local maxRad = math.rad(Core.WING_MAX_Y)
-        Core.wingAngleY = Core.wingAngleY + (math.rad(Core.WING_SPEED_Y) * dt * Core.wingDirY)
-        if Core.wingAngleY >= maxRad then Core.wingAngleY = maxRad; Core.wingDirY = -1
-        elseif Core.wingAngleY <= minRad then Core.wingAngleY = minRad; Core.wingDirY = 1 end
+    
+    -- Update each axis
+    for axis, angleRef in pairs({X="wingAngleX", Y="wingAngleY", Z="wingAngleZ"}) do
+        local minKey = "WING_MIN_"..axis
+        local maxKey = "WING_MAX_"..axis
+        local speedKey = "WING_SPEED_"..axis
+        local dirKey = "wingDir"..axis
+        
+        if Core[maxKey] ~= Core[minKey] then
+            local minRad = math.rad(Core[minKey])
+            local maxRad = math.rad(Core[maxKey])
+            Core[angleRef] = Core[angleRef] + (math.rad(Core[speedKey]) * dt * Core[dirKey])
+            if Core[angleRef] >= maxRad then Core[angleRef] = maxRad; Core[dirKey] = -1
+            elseif Core[angleRef] <= minRad then Core[angleRef] = minRad; Core[dirKey] = 1 end
+        end
     end
-    if Core.WING_MAX_Z ~= Core.WING_MIN_Z then
-        local minRad = math.rad(Core.WING_MIN_Z); local maxRad = math.rad(Core.WING_MAX_Z)
-        Core.wingAngleZ = Core.wingAngleZ + (math.rad(Core.WING_SPEED_Z) * dt * Core.wingDirZ)
-        if Core.wingAngleZ >= maxRad then Core.wingAngleZ = maxRad; Core.wingDirZ = -1
-        elseif Core.wingAngleZ <= minRad then Core.wingAngleZ = minRad; Core.wingDirZ = 1 end
+    
+    -- Apply mapped angles back
+    if spinMode == "X" then
+        Core.wingAngleX = angles.X
+        Core.wingAngleY = angles.Y
+        Core.wingAngleZ = angles.Z
+    elseif spinMode == "Y" then
+        Core.wingAngleX = angles.Y  -- Primary was Y
+        Core.wingAngleY = angles.X  -- Secondary was X
+        Core.wingAngleZ = angles.Z
+    else -- Z
+        Core.wingAngleX = angles.Y  -- Secondary was X
+        Core.wingAngleY = angles.Z  -- Tertiary was Z
+        Core.wingAngleZ = angles.X  -- Primary was Z
     end
+    
+    -- Update dirs back
+    Core.wingDirX = dirs.X
+    Core.wingDirY = dirs.Y
+    Core.wingDirZ = dirs.Z
 end
 
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 -- RENDER LOOP
--- ════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════
 function Core.startRenderLoop()
     local TWO_PI = math.pi * 2
     local V3_ZERO = Vector3.zero
@@ -527,7 +591,9 @@ function Core.startRenderLoop()
         
         if Core.USE_OUTER2 then
             Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
-            if not Core.USE_WING then Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI end
+            if not Core.USE_WING then
+                Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI
+            end
             Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
             Core.updateWingMode(dt)
         end
@@ -599,9 +665,9 @@ function Core.startRenderLoop()
     end)
 end
 
--- ════════════════════════════════════════════════════════
--- CHARACTER HOOKS
 -- ═══════════════════════════════════════════════════════
+-- CHARACTER HOOKS
+-- ══════════════════════════════════════════════════════
 function Core.onChar(c)
     Core.chr = c
     Core.hrp = c:WaitForChild("HumanoidRootPart")
@@ -614,22 +680,20 @@ function Core.onChar(c)
     end)
 end
 
--- Initialize character after player is ready
 task.spawn(function()
     local chr = getCharacter()
     Core.onChar(chr)
     getPlayer().CharacterAdded:Connect(Core.onChar)
 end)
 
--- ═══════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════
 -- INIT
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════
 function Core.Init(GUI, Wing)
     Core.GUI = GUI
     Core.Wing = Wing
     
-    -- ADD THIS LINE:
-    GUI.Create(Core)  -- ← MISSING! This creates the GUI
+    GUI.Create(Core)
     
     Core.startRenderLoop()
     
