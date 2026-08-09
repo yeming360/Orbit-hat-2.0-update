@@ -1,4 +1,4 @@
--- core.lua (FULLY FIXED)
+-- core.lua (COMBINED SPIN + WING - FINAL FIX)
 local Core = {}
 
 -- Services (lazy)
@@ -26,7 +26,7 @@ end
 
 -- ═══════════════════════════════════════════════════════
 -- SETTINGS
--- ══════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 Core.DISTANCE = 5
 Core.ORBIT_RADIUS = 3
 Core.ORBIT_SPEED = 60
@@ -34,7 +34,7 @@ Core.ORBIT_MODE = "Y"
 Core.HEIGHT_OFFSET = 2
 Core.SPIN_SPEED = 1
 Core.ORBIT_ROTATION = 0
-Core.SPIN_MODE = "Y"  -- Ring 1 Spin Axis
+Core.SPIN_MODE = "Y"
 
 Core.USE_OUTER2 = false
 Core.OUTER2_COUNT = 4
@@ -45,7 +45,7 @@ Core.OUTER2_SPEED = 60
 Core.OUTER2_HEIGHT = 2
 Core.OUTER2_SPIN = 1
 Core.OUTER2_ROTATION = 0
-Core.OUTER2_SPIN_MODE = "Y"  -- Ring 2 Spin Axis (NEW)
+Core.OUTER2_SPIN_MODE = "Y"
 
 Core.USE_OUTER3 = false
 Core.OUTER3_COUNT = 4
@@ -185,9 +185,9 @@ Core.WING_SPEED_X = 30; Core.WING_SPEED_Y = 30; Core.WING_SPEED_Z = 30
 
 Core.OUTER2_SPIN_MODE = "Y"
 
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 -- STATE
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 Core.orbitData = {}
 Core.orbitParts = {}
 Core.handles = {}
@@ -207,12 +207,14 @@ Core.heldHats = {}
 Core.dlazerHats = {}; Core.dlazerShootAngle = 0; Core.dlazerOrbitAngle = 0
 Core.fireballHats = {left={}, right={}}; Core.fireballHoldZAngle = 0; Core.fireballHoldYAngle = 0; Core.fireballHoldPulse = 0
 Core.shootOutAngle = 0
+
+-- Wing angles (initialized to 0)
 Core.wingAngleX = 0; Core.wingAngleY = 0; Core.wingAngleZ = 0
 Core.wingDirX = 1; Core.wingDirY = 1; Core.wingDirZ = 1
 
 -- ════════════════════════════════════════════════════════
 -- LAZY GETTERS
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 local function getPlayers() return game:GetService("Players") end
 local function getRunService() return game:GetService("RunService") end
 local function getUserInputService() return game:GetService("UserInputService") end
@@ -318,7 +320,7 @@ function Core.getHatHandlesSorted() local s={} for h in pairs(Core.orbitData) do
 
 -- ════════════════════════════════════════════════════════
 -- HOLD MODES
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 function Core.setShieldEnabled(enabled)
     Core.USE_SHIELD=enabled
     if not enabled then if Core.shieldHats.left then Core.heldHats[Core.shieldHats.left.handle]=nil end if Core.shieldHats.right then Core.heldHats[Core.shieldHats.right.handle]=nil end Core.shieldHats={} return end
@@ -385,7 +387,7 @@ end
 
 -- ════════════════════════════════════════════════════════
 -- UPDATE FUNCTIONS
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 function Core.updateShield(dt)
     if not Core.USE_SHIELD then return end; if not (Core.shieldHats.left or Core.shieldHats.right) then return end
     local a=Core.resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
@@ -500,14 +502,14 @@ function Core.updateFireballHold(dt)
 end
 
 -- ═════════════════════════════════════════════════════════
--- WING MODE (Combined Spin + Wing)
+-- COMBINED SPIN + WING MODE (OUTER RING 2)
 -- ════════════════════════════════════════════════════════
 function Core.updateWingMode(dt)
     if not Core.USE_OUTER2 then return end
     
     local spinMode = Core.OUTER2_SPIN_MODE
     
-    -- Define which axes are primary/secondary/tertiary based on spin mode
+    -- Define primary/secondary/tertiary axes based on spin mode
     local primaryAxis, secondaryAxis, tertiaryAxis
     if spinMode == "X" then
         primaryAxis, secondaryAxis, tertiaryAxis = "X", "Y", "Z"
@@ -517,8 +519,9 @@ function Core.updateWingMode(dt)
         primaryAxis, secondaryAxis, tertiaryAxis = "Z", "X", "Y"
     end
     
-    -- Helper to update one axis (spin + optional wing)
+    -- Update one axis: spin + optional wing oscillation
     local function updateAxis(axis, isPrimary)
+        local spinVal = Core.OUTER2_SPIN
         local minKey = "WING_MIN_"..axis
         local maxKey = "WING_MAX_"..axis
         local speedKey = "WING_SPEED_"..axis
@@ -527,55 +530,49 @@ function Core.updateWingMode(dt)
         
         local minVal = Core[minKey]
         local maxVal = Core[maxKey]
-        local spinVal = Core["OUTER2_SPIN"]
+        local spinVal = Core.OUTER2_SPIN
+        local wingSpeed = Core["WING_SPEED_"..axis]
         
-        -- Always apply base spin if > 0
+        -- 1. BASE SPIN (always applied if > 0)
         local baseSpin = 0
         if spinVal and spinVal > 0 then
-            baseSpin = math.rad(spinVal * 60) * dt
+            local spinRad = math.rad(spinVal * 60)
+            Core["wingAngle"..axis] = Core["wingAngle"..axis] + (spinRad * dt)
         end
         
-        -- Wing oscillation (only if enabled and axis has range)
-        local wingOsc = 0
+        -- 2. WING OSCILLATION (added on top of spin)
         if Core.USE_WING then
             local minVal = Core["WING_MIN_"..axis]
             local maxVal = Core["WING_MAX_"..axis]
-            local speedVal = Core["WING_SPEED_"..axis]
+            local wingSpeed = Core["WING_SPEED_"..axis]
             
-            if maxVal ~= minVal and Core["WING_SPEED_"..axis] and Core["WING_SPEED_"..axis] > 0 then
+            if maxVal ~= minVal and wingSpeed and wingSpeed > 0 then
                 local minRad = math.rad(minVal)
                 local maxRad = math.rad(maxVal)
-                local speed = math.rad(Core["WING_SPEED_"..axis])
+                local speed = math.rad(wingSpeed)
                 local dir = Core["wingDir"..axis] or 1
                 
-                Core["wingAngle"..axis] = Core["wingAngle"..axis] + (speed * dt * dir)
+                -- Wing oscillation (oscillates around 0)
+                local wingOsc = Core["wingAngle"..axis] + (math.rad(wingSpeed) * dt * (Core["wingDir"..axis] or 1))
                 
                 -- Bounce at limits
-                if Core["wingAngle"..axis] >= math.rad(maxVal) then
-                    Core["wingAngle"..axis] = math.rad(maxVal)
+                if wingOsc >= math.rad(maxVal) then
+                    wingOsc = math.rad(maxVal)
                     Core["wingDir"..axis] = -1
-                elseif Core["wingAngle"..axis] <= math.rad(minVal) then
-                    Core["wingAngle"..axis] = math.rad(minVal)
+                elseif wingOsc <= math.rad(minVal) then
+                    wingOsc = math.rad(minVal)
                     Core["wingDir"..axis] = 1
                 end
                 
-                wingOsc = Core["wingAngle"..axis]
+                Core["wingAngle"..axis] = wingOsc
             end
-        end
-        
-        -- Combined rotation = base spin + wing oscillation
-        if isPrimary then
-            Core["wingAngle"..axis] = Core["wingAngle"..axis] + baseSpin + wingOsc
-        else
-            -- Non-primary axes: only spin (if any) + wing oscillation
-            Core["wingAngle"..axis] = Core["wingAngle"..axis] + baseSpin + wingOsc
         end
     end
     
     -- Update all three axes
-    updateAxis("X", spinMode == "X")
-    updateAxis("Y", spinMode == "Y")
-    updateAxis("Z", spinMode == "Z")
+    updateAxis("X")
+    updateAxis("Y")
+    updateAxis("Z")
 end
 
 -- ════════════════════════════════════════════════════════
@@ -636,12 +633,6 @@ function Core.startRenderLoop()
         local function uv(mode) if mode=="X" then return u,b elseif mode=="Z" then return r,u else return r,b end end
         local u1,v1=uv(Core.ORBIT_MODE); local u2,v2=uv(Core.OUTER2_MODE); local u3,v3=uv(Core.OUTER3_MODE); local u4,v4=uv(Core.OUTER4_MODE); local uIn,vIn=uv(Core.INNER_ORBIT_MODE)
         
-        -- Per-ring spin vectors
-        local spinVec1 = (Core.SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
-        local spinVec2 = (Core.OUTER2_SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.OUTER2_SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
-        local spinVec3 = (Core.SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
-        local spinVec4 = (Core.SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
-        
         local innerCap=Core.USE_INNER_RING and math.min(Core.INNER_COUNT,availCount) or 0; local rem=availCount-innerCap
         local o2c=Core.USE_OUTER2 and math.min(Core.OUTER2_COUNT,rem) or 0; rem=rem-o2c
         local o3c=Core.USE_OUTER3 and math.min(Core.OUTER3_COUNT,rem) or 0; rem=rem-o3c
@@ -681,7 +672,7 @@ function Core.startRenderLoop()
             if not (isO2 and Core.USE_WING) then
                 -- Per-ring spin mode
                 local spinMode = Core.SPIN_MODE
-                local spinVec = spinVec1
+                local spinVec = (Core.SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
                 local spinAngle = Core.outerSpinAngle
                 
                 if isO2 then
@@ -704,7 +695,7 @@ end
 
 -- ════════════════════════════════════════════════════════
 -- CHARACTER HOOKS
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 function Core.onChar(c)
     Core.chr = c
     Core.hrp = c:WaitForChild("HumanoidRootPart")
@@ -723,9 +714,9 @@ task.spawn(function()
     getPlayer().CharacterAdded:Connect(Core.onChar)
 end)
 
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 -- INIT
--- ══════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 function Core.Init(GUI, Wing)
     Core.GUI = GUI
     Core.Wing = Wing
