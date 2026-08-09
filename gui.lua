@@ -324,7 +324,7 @@ function GUI.Create(Core)
     addSlider("💫 Spin", -10000,10000, Core.OUTER2_SPIN, 0.5, function(v) Core.OUTER2_SPIN=v end)
     addTog("🔀 Split", function() return Core.USE_OUTER2_SPLIT end, function() Core.USE_OUTER2_SPLIT=not Core.USE_OUTER2_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio", 0.1,0.9, Core.OUTER2_SPLIT_RATIO, 0.05, function(v) Core.OUTER2_SPLIT_RATIO=v end)
-    
+
     -- WING MODE (Dynamic - Connects to Spin Axis)
     addSec("── 🕊️ Wing Mode (3-Axis) ──")
     addTog("🔘 Wing Mode", function() return Core.USE_WING end, function() Core.USE_WING=not Core.USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
@@ -354,7 +354,7 @@ function GUI.Create(Core)
     local secs = secMap[spinMode] or {"X-Axis (Roll)", "Z-Axis (Yaw)"}
     local sec1, sec2 = secs[1], secs[2]
     
-        addSec("  "..sec1)
+    addSec("  "..sec1)
     addSlider("Min "..sec1, -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
     addSlider("Max "..sec1, -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
     addSlider(sec1.." Speed", 1,180, Core.WING_SPEED_Y, 1, function(v) Core.WING_SPEED_Y=v end)
