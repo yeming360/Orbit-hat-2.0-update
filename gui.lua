@@ -1,4 +1,4 @@
--- gui.lua (COMPLETE - All Features)
+-- gui.lua
 local GUI = {}
 
 function GUI.Create(Core)
@@ -88,7 +88,7 @@ function GUI.Create(Core)
     local y = 10
     local PAD = 12
     
-    -- ═══ GUI HELPER FUNCTIONS
+    -- ═══ GUI HELPERS
     local function addModeRow(label, modes, getCur, onSel)
         local l = Instance.new("TextLabel", content)
         l.Size = UDim2.new(1, -PAD*2, 0, 14)
@@ -298,7 +298,8 @@ function GUI.Create(Core)
     addSlider("🌀 Speed", -10000,10000, Core.ORBIT_SPEED, 5, function(v) Core.ORBIT_SPEED=v end)
     addSlider("↕️ Height", -10000,10000, Core.HEIGHT_OFFSET, 0.5, function(v) Core.HEIGHT_OFFSET=v end)
     addSlider("💫 Spin", -10000,10000, Core.SPIN_SPEED, 0.5, function(v) Core.SPIN_SPEED=v end)
-    addModeRow("🔀 Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.ORBIT_MODE end, function(k) Core.ORBIT_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.ORBIT_MODE end, function(k) Core.ORBIT_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.SPIN_MODE end, function(k) Core.SPIN_MODE=k end)
     addTog("🔀 Split", function() return Core.USE_SPLIT end, function() Core.USE_SPLIT=not Core.USE_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio", 0.1,0.9, Core.SPLIT_RATIO, 0.05, function(v) Core.SPLIT_RATIO=v end)
     addTog("☀️ Shoot Out", function() return Core.USE_SHOOT_OUT end, function() Core.USE_SHOOT_OUT=not Core.USE_SHOOT_OUT end, {text="☀️ ON",bg=Color3.fromRGB(255,200,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
@@ -307,11 +308,15 @@ function GUI.Create(Core)
     addSlider("🌀 Orbit Speed", -10000,10000, Core.SHOOT_OUT_ORBIT_SPEED, 10, function(v) Core.SHOOT_OUT_ORBIT_SPEED=v end)
     addTog("🌍 Orbit While Shoot", function() return Core.USE_SHOOT_OUT_ORBIT end, function() Core.USE_SHOOT_OUT_ORBIT=not Core.USE_SHOOT_OUT_ORBIT end, {text="🌍 ON",bg=Color3.fromRGB(0,150,100)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    -- OUTER RING 2 (with Wing Mode)
+    -- OUTER RING 2 (with Spin Axis + Wing Mode)
     addSec("── Outer Ring 2 ──")
     addTog("🔘 Outer Ring 2", function() return Core.USE_OUTER2 end, function() Core.USE_OUTER2=not Core.USE_OUTER2 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("👤 Count", 1,16, Core.OUTER2_COUNT, 1, function(v) Core.OUTER2_COUNT=math.floor(v) end)
-    addModeRow("🔀 Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER2_MODE end, function(k) Core.OUTER2_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER2_MODE end, function(k) Core.OUTER2_MODE=k end)
+    
+    -- Spin Axis for Ring 2
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.OUTER2_SPIN_MODE end, function(k) Core.OUTER2_SPIN_MODE=k end)
+    
     addSlider("📏 Distance", -10000,10000, Core.OUTER2_DISTANCE, 0.5, function(v) Core.OUTER2_DISTANCE=v end)
     addSlider("⭕ Radius", -10000,10000, Core.OUTER2_RADIUS, 0.5, function(v) Core.OUTER2_RADIUS=v end)
     addSlider("🌀 Speed", -10000,10000, Core.OUTER2_SPEED, 5, function(v) Core.OUTER2_SPEED=v end)
@@ -320,30 +325,47 @@ function GUI.Create(Core)
     addTog("🔀 Split", function() return Core.USE_OUTER2_SPLIT end, function() Core.USE_OUTER2_SPLIT=not Core.USE_OUTER2_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio", 0.1,0.9, Core.OUTER2_SPLIT_RATIO, 0.05, function(v) Core.OUTER2_SPLIT_RATIO=v end)
     
-    -- WING MODE (3-AXIS)
+    -- WING MODE (Dynamic - Connects to Spin Axis)
     addSec("── 🕊️ Wing Mode (3-Axis) ──")
     addTog("🔘 Wing Mode", function() return Core.USE_WING end, function() Core.USE_WING=not Core.USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    addSec("  X-Axis (Roll)")
-    addSlider("Min X-Axis", -180,180, Core.WING_MIN_X, 1, function(v) Core.WING_MIN_X=math.floor(v) end)
-    addSlider("Max X-Axis", -180,180, Core.WING_MAX_X, 1, function(v) Core.WING_MAX_X=math.floor(v) end)
-    addSlider("X Speed", 1,180, Core.WING_SPEED_X, 1, function(v) Core.WING_SPEED_X=v end)
+    -- Dynamic axis labels based on Spin Axis
+    local function getAxisLabels()
+        local axis = Core.OUTER2_SPIN_MODE
+        if axis == "X" then
+            return "X-Axis (Roll)", "Y-Axis (Pitch)", "Z-Axis (Yaw)"
+        elseif axis == "Y" then
+            return "Y-Axis (Pitch)", "X-Axis (Roll)", "Z-Axis (Yaw)"
+        else
+            return "Z-Axis (Yaw)", "X-Axis (Roll)", "Y-Axis (Pitch)"
+        end
+    end
     
-    addSec("  Y-Axis (Pitch)")
-    addSlider("Min Y-Axis", -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
-    addSlider("Max Y-Axis", -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
-    addSlider("Y Speed", 1,180, Core.WING_SPEED_Y, 1, function(v) Core.WING_SPEED_Y=v end)
+    -- Primary Axis (matches Spin Axis)
+    local primaryLabel = ({X="X-Axis (Roll)", Y="Y-Axis (Pitch)", Z="Z-Axis (Yaw)"})[Core.OUTER2_SPIN_MODE]
+    addSec("  "..primaryLabel.." (Primary)")
+    addSlider("Min Primary", -180,180, Core.WING_MIN_X, 1, function(v) Core.WING_MIN_X=math.floor(v) end)
+    addSlider("Max Primary", -180,180, Core.WING_MAX_X, 1, function(v) Core.WING_MAX_X=math.floor(v) end)
+    addSlider("Primary Speed", 1,180, Core.WING_SPEED_X, 1, function(v) Core.WING_SPEED_X=v end)
     
-    addSec("  Z-Axis (Yaw)")
-    addSlider("Min Z-Axis", -180,180, Core.WING_MIN_Z, 1, function(v) Core.WING_MIN_Z=math.floor(v) end)
-    addSlider("Max Z-Axis", -180,180, Core.WING_MAX_Z, 1, function(v) Core.WING_MAX_Z=math.floor(v) end)
-    addSlider("Z Speed", 1,180, Core.WING_SPEED_Z, 1, function(v) Core.WING_SPEED_Z=v end)
+    -- Secondary axes
+    local sec1, sec2 = ({X={"Y-Axis (Pitch)","Z-Axis (Yaw)"}, Y={"X-Axis (Roll)","Z-Axis (Yaw)"}, Z={"X-Axis (Roll)","Y-Axis (Pitch)"}})[Core.OUTER2_SPIN_MODE]
+    addSec("  "..sec1)
+    addSlider("Min "..sec1, -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
+    addSlider("Max "..sec1, -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
+    addSlider(sec1.." Speed", 1,180, Core.WING_SPEED_Y, 1, function(v) Core.WING_SPEED_Y=v end)
+    
+    addSec("  "..sec2)
+    addSlider("Min "..sec2, -180,180, Core.WING_MIN_Z, 1, function(v) Core.WING_MIN_Z=math.floor(v) end)
+    addSlider("Max "..sec2, -180,180, Core.WING_MAX_Z, 1, function(v) Core.WING_MAX_Z=math.floor(v) end)
+    addSlider(sec2.." Speed", 1,180, Core.WING_SPEED_Z, 1, function(v) Core.WING_SPEED_Z=v end)
     
     -- OUTER RING 3
     addSec("── Outer Ring 3 ──")
     addTog("🔘 Outer Ring 3", function() return Core.USE_OUTER3 end, function() Core.USE_OUTER3=not Core.USE_OUTER3 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("👤 Count", 1,16, Core.OUTER3_COUNT, 1, function(v) Core.OUTER3_COUNT=math.floor(v) end)
-    addModeRow("🔀 Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER3_MODE end, function(k) Core.OUTER3_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER3_MODE end, function(k) Core.OUTER3_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.SPIN_MODE end, function(k) Core.SPIN_MODE=k end)
     addSlider("📏 Distance", -10000,10000, Core.OUTER3_DISTANCE, 0.5, function(v) Core.OUTER3_DISTANCE=v end)
     addSlider("⭕ Radius", -10000,10000, Core.OUTER3_RADIUS, 0.5, function(v) Core.OUTER3_RADIUS=v end)
     addSlider("🌀 Speed", -10000,10000, Core.OUTER3_SPEED, 5, function(v) Core.OUTER3_SPEED=v end)
@@ -356,7 +378,8 @@ function GUI.Create(Core)
     addSec("── Outer Ring 4 ──")
     addTog("🔘 Outer Ring 4", function() return Core.USE_OUTER4 end, function() Core.USE_OUTER4=not Core.USE_OUTER4 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("👤 Count", 1,16, Core.OUTER4_COUNT, 1, function(v) Core.OUTER4_COUNT=math.floor(v) end)
-    addModeRow("🔀 Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER4_MODE end, function(k) Core.OUTER4_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER4_MODE end, function(k) Core.OUTER4_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.SPIN_MODE end, function(k) Core.SPIN_MODE=k end)
     addSlider("📏 Distance", -10000,10000, Core.OUTER4_DISTANCE, 0.5, function(v) Core.OUTER4_DISTANCE=v end)
     addSlider("⭕ Radius", -10000,10000, Core.OUTER4_RADIUS, 0.5, function(v) Core.OUTER4_RADIUS=v end)
     addSlider("🌀 Speed", -10000,10000, Core.OUTER4_SPEED, 5, function(v) Core.OUTER4_SPEED=v end)
@@ -370,7 +393,8 @@ function GUI.Create(Core)
     addTog("🔘 Inner Ring", function() return Core.USE_INNER_RING end, function() Core.USE_INNER_RING=not Core.USE_INNER_RING end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("👤 Count", 1,12, Core.INNER_COUNT, 1, function(v) Core.INNER_COUNT=math.floor(v) end)
     addModeRow("⚡ Mode", {{key="Ring",text="💍 Ring"},{key="Lazer",text="🔴 Lazer"},{key="DoubleLazer",text="🔴🔴 Double"},{key="Fireball",text="🔥 Fireball"},{key="DoubleStar",text="🌌 Dual"}}, function() return Core.INNER_MODE end, function(k) Core.INNER_MODE=k end)
-    addModeRow("🔀 Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.INNER_ORBIT_MODE end, function(k) Core.INNER_ORBIT_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.INNER_ORBIT_MODE end, function(k) Core.INNER_ORBIT_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.SPIN_MODE end, function(k) Core.SPIN_MODE=k end)
     
     addSec("── Inner Props ──")
     addSlider("📏 Distance", -10000,10000, Core.INNER_DISTANCE, 0.5, function(v) Core.INNER_DISTANCE=v end)
