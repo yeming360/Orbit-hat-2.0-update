@@ -1,4 +1,20 @@
--- core.lua (MAGNET SYSTEM ADDED)
+-- core.lua (SIMPLIFIED - ONE Y-AXIS MAGNET)
+local Core = {}
+
+-- Services (lazy)
+local function getPlayers() return game:GetService("Players") end
+local function getRunService() return game:GetService("RunService") end
+local function getUserInputService() return game:GetService("UserInputService") end
+
+local function getPlayer()
+    if not Core._player then
+        Core._player = getPlayers().LocalPlayer
+        while not Core._player do task.wait();The magnet logic was overcomplicated. Here's the **simplified fix** with **one Y-axis magnet** that makes hats **LOOK AT YOU** like spin axis magnet:
+
+## ✅ **Fixed `core.lua` - One Y-Axis Magnet**
+
+```lua
+-- core.lua (SIMPLIFIED - ONE Y-AXIS MAGNET)
 local Core = {}
 
 -- Services (lazy)
@@ -140,7 +156,7 @@ Core.HOLD_SLOTS = {
     {USE=false, DIST=-30.5, HGT=1, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=7, RIDX=8},
     {USE=false, DIST=-40.5, HGT=2, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=9, RIDX=10},
     {USE=false, DIST=-50.5, HGT=3, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=11, RIDX=12},
-    {USE=false, DIST=-60.5, HGT=4, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=11, RIDX=14},
+    {USE=false, DIST=-60.5, HGT=4, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=13, RIDX=14},
     {USE=false, DIST=-70.5, HGT=5, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=15, RIDX=16},
     {USE=false, DIST=-80.5, HGT=6, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=17, RIDX=18},
     {USE=false, DIST=-90.5, HGT=7, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=19, RIDX=20},
@@ -186,15 +202,11 @@ Core.WING_SPEED_X = 30; Core.WING_SPEED_Y = 30; Core.WING_SPEED_Z = 30
 Core.OUTER2_SPIN_MODE = "Y"
 
 -- ════════════════════════════════════════════════════════
--- MAGNET SETTINGS (NEW)
--- ═══════════════════════════════════════════════════════
+-- MAGNET SETTINGS (SIMPLIFIED - ONE Y-AXIS)
+-- ════════════════════════════════════════════════════════
 Core.MAGNET_ENABLED = true
-Core.WING_MAGNET_ENABLED = false      -- Wing Mode Magnet
-Core.WING_Y_MAGNET_ENABLED = true     -- Y-Axis Magnet (forced ON for look-at)
-Core.WING_X_MAGNET_ENABLED = false    -- X-Axis Magnet
-Core.WING_Z_MAGNET_ENABLED = false    -- Z-Axis Magnet
+Core.WING_Y_MAGNET_ENABLED = true  -- ONE Y-AXIS MAGNET
 
-Core.MAGNET_ENABLED = true
 Core.SMOOTHNESS = 12
 Core.MAX_HATS = 22
 Core.GUI_SCALE = 1.0
@@ -266,7 +278,7 @@ Core.OUTER2_SPIN_MODE = "Y"
 
 -- ════════════════════════════════════════════════════════
 -- STATE
--- ════════════════════════════════════════════════════════
+-- ═════════════════════════════════════════════════════════
 Core.orbitData = {}
 Core.orbitParts = {}
 Core.handles = {}
@@ -328,9 +340,9 @@ function Core.isWearable(inst)
     return inst:IsA("Accessory") or inst:IsA("Hat")
 end
 
--- ════════════════════════════════════════════════════════
+-- ═════════════════════════════════════════════════════════
 -- HELPERS
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 function Core.cleanupHat(handle)
     local data = Core.orbitData[handle]; if not data then return end
     if data.alignPos then data.alignPos:Destroy() end
@@ -396,9 +408,9 @@ end
 
 function Core.getHatHandlesSorted() local s={} for h in pairs(Core.orbitData) do table.insert(s,h) end; table.sort(s,function(a,b) return a.Name<b.Name end); return s end
 
--- ════════════════════════════════════════════════════════
+-- ═════════════════════════════════════════════════════════
 -- HOLD MODES
--- ════════════════════════════════════════════════════════
+-- ═════════════════════════════════════════════════════════
 function Core.setShieldEnabled(enabled)
     Core.USE_SHIELD=enabled
     if not enabled then if Core.shieldHats.left then Core.heldHats[Core.shieldHats.left.handle]=nil end if Core.shieldHats.right then Core.heldHats[Core.shieldHats.right.handle]=nil end Core.shieldHats={} return end
@@ -433,86 +445,6 @@ function Core.setDLazerHoldEnabled(enabled)
     for _,pick in ipairs({{side="left",idx=Core.DLAZER_LEFT_INDEX},{side="right",idx=Core.DLAZER_RIGHT_INDEX}}) do
         local h=s[pick.idx]; local d=h and Core.orbitData[h]
         if h and d and not Core.dlazerHats[pick.side] and not Core.heldHats[h] then Core.heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; Core.dlazerHats[pick.side]={handle=h,data=d} end
-    end
-end
-
-function Core.ensureFireballStructure()
-    if type(Core.fireballHats)~="table" then Core.fireballHats={} end
-    if type(Core.fireballHats.left)~="table" then Core.fireballHats.left={} end
-    if type(Core.fireballHats.right)~="table" then Core.fireballHats.right={} end
-end
-
-function Core.setFireballHoldEnabled(enabled)
-    Core.USE_FIREBALL_HOLD=enabled; Core.ensureFireballStructure()
-    if not enabled then if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end Core.fireballHats.left={}; Core.fireballHats.right={} return end
-    local chr = getCharacter()
-    if not chr or not chr:FindFirstChild("LeftHand") or not chr:FindFirstChild("RightHand") then Core.USE_FIREBALL_HOLD=false return end
-    local s=Core.getHatHandlesSorted()
-    if #s<math.max(Core.FIREBALL_LEFT_INDEX,Core.FIREBALL_RIGHT_INDEX) then Core.USE_FIREBALL_HOLD=false return end
-    if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end
-    if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end
-    Core.fireballHats.left={}; Core.fireballHats.right={}
-    for _,pick in ipairs({{side="left",idx=Core.FIREBALL_LEFT_INDEX},{side="right",idx=Core.FIREBALL_RIGHT_INDEX}}) do
-        local h=s[pick.idx]; local d=h and Core.orbitData[h]
-        if h and d and not Core.heldHats[h] then Core.heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; Core.fireballHats[pick.side]={handle=h,data=d} end
-    end
-    if not (Core.fireballHats.left and Core.fireballHats.left.handle) and not (Core.fireballHats.right and Core.fireballHats.right.handle) then
-        Core.USE_FIREBALL_HOLD=false
-        if Core.fireballHats.left and Core.fireballHats.left.handle then Core.heldHats[Core.fireballHats.left.handle]=nil end
-        if Core.fireballHats.right and Core.fireballHats.right.handle then Core.heldHats[Core.fireballHats.right.handle]=nil end
-    end
-end
-
--- ═════════════════════════════════════════════════════════
--- UPDATE FUNCTIONS
--- ════════════════════════════════════════════════════════
-function Core.updateShield(dt)
-    if not Core.USE_SHIELD then return end; if not (Core.shieldHats.left or Core.shieldHats.right) then return end
-    local a=Core.resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
-    Core.shieldAngle=(Core.shieldAngle+math.rad(Core.SHIELD_SPEED)*dt)%(math.pi*2)
-    for side,hd in pairs(Core.shieldHats) do
-        if hd and hd.handle and hd.handle.Parent and hd.data and hd.data.orbitPart then
-            local o=(side=="left") and math.pi or 0; local ang=Core.shieldAngle+o
-            local tp=a.Position+b*Core.SHIELD_DISTANCE+u*Core.SHIELD_HEIGHT+r*math.cos(ang)*Core.SHIELD_RADIUS+u*math.sin(ang)*Core.SHIELD_RADIUS
-            hd.data.orbitPart.CFrame=CFrame.new(tp)*CFrame.Angles(0,math.rad(90),0)
-        end
-    end
-end
-
-function Core.updateHoldSlot(slotIdx)
-    local slot=Core.HOLD_SLOTS[slotIdx]; local hats=Core.holdSlotHats[slotIdx]
-    if not slot.USE then return end; if not (hats.left or hats.right) then return end
-    local chr = getCharacter()
-    if not chr then return end
-    local lh=chr:FindFirstChild("LeftHand"); local rh=chr:FindFirstChild("RightHand"); if not lh or not rh then return end
-    local rot=CFrame.Angles(math.rad(slot.RX),math.rad(slot.RY),math.rad(slot.RZ))
-    local ld=hats.left
-    if ld and ld.handle and ld.handle.Parent and ld.data and ld.data.orbitPart then ld.data.orbitPart.CFrame=lh.CFrame*CFrame.new(slot.LOFF,slot.HGT,slot.DIST)*rot end
-    local rd=hats.right
-    if rd and rd.handle and rd.handle.Parent and rd.data and rd.data.orbitPart then rd.data.orbitPart.CFrame=rh.CFrame*CFrame.new(slot.ROFF,slot.HGT,slot.DIST)*rot end
-end
-
-function Core.updateDLazerHold(dt)
-    if not Core.USE_DLAZER_HOLD then return end; if not (Core.dlazerHats.left or Core.dlazerHats.right) then return end
-    local chr = getCharacter()
-    if not chr then return end
-    local lh=chr:FindFirstChild("LeftHand"); local rh=chr:FindFirstChild("RightHand"); if not lh or not rh then return end
-    Core.dlazerShootAngle=(Core.dlazerShootAngle+math.rad(Core.DLAZER_SHOOT_SPEED)*dt)%(math.pi*2)
-    Core.dlazerOrbitAngle=(Core.dlazerOrbitAngle+math.rad(Core.DLAZER_ORBIT_SPEED)*dt)%(math.pi*2)
-    local rot=CFrame.Angles(math.rad(Core.DLAZER_ROT_X),math.rad(Core.DLAZER_ROT_Y),math.rad(Core.DLAZER_ROT_Z))
-    local ld=Core.dlazerHats.left
-    if ld and ld.handle and ld.handle.Parent and ld.data and ld.data.orbitPart then
-        local pulse=math.sin(Core.dlazerShootAngle)*Core.DLAZER_RANGE
-        local orbitX=math.cos(Core.dlazerOrbitAngle)*Core.DLAZER_BEAM_RADIUS; local orbitY=math.sin(Core.dlazerOrbitAngle)*Core.DLAZER_BEAM_RADIUS
-        local pulseOffset=CFrame.new(orbitX,orbitY,pulse)
-        ld.data.orbitPart.CFrame=lh.CFrame*CFrame.new(Core.DLAZER_LEFT_OFFSET,Core.DLAZER_HEIGHT,-Core.DLAZER_DISTANCE)*CFrame.Angles(math.rad(Core.DLAZER_ROT_X),math.rad(Core.DLAZER_ROT_Y),math.rad(Core.DLAZER_ROT_Z))*pulseOffset
-    end
-    local rd=Core.dlazerHats.right
-    if rd and rd.handle and rd.handle.Parent and rd.data and rd.data.orbitPart then
-        local pulse=math.sin(Core.dlazerShootAngle)*Core.DLAZER_RANGE
-        local orbitX=math.cos(Core.dlazerOrbitAngle)*Core.DLAZER_BEAM_RADIUS; local orbitY=math.sin(Core.dlazerOrbitAngle)*Core.DLAZER_BEAM_RADIUS
-        local pulseOffset=CFrame.new(orbitX,orbitY,pulse)
-        rd.data.orbitPart.CFrame=rh.CFrame*CFrame.new(Core.DLAZER_RIGHT_OFFSET,Core.DLAZER_HEIGHT,-Core.DLAZER_DISTANCE)*CFrame.Angles(math.rad(Core.DLAZER_ROT_X),math.rad(Core.DLAZER_ROT_Y),math.rad(Core.DLAZER_ROT_Z))*pulseOffset
     end
 end
 
@@ -581,14 +513,11 @@ end
 
 -- ══════════════════════════════════════════════════════════
 -- COMBINED SPIN + WING MODE (OUTER RING 2)
--- ══════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════════
 function Core.updateWingMode(dt)
     if not Core.USE_OUTER2 then return end
     
-    local spinMode = Core.OUTER2_SPIN_MODE
-    
-    -- Update one axis: spin + optional wing oscillation
-    local function updateAxis(axis, isPrimary)
+    local function updateAxis(axis)
         local spinVal = Core.OUTER2_SPIN
         local minKey = "WING_MIN_"..axis
         local maxKey = "WING_MAX_"..axis
@@ -620,7 +549,7 @@ function Core.updateWingMode(dt)
                 local speed = math.rad(wingSpeed)
                 local dir = Core["wingDir"..axis] or 1
                 
-                -- Wing oscillation (oscillates around 0)
+                -- Wing oscillation
                 local wingOsc = Core["wingAngle"..axis] + (math.rad(wingSpeed) * dt * (Core["wingDir"..axis] or 1))
                 
                 -- Bounce at limits
@@ -675,7 +604,7 @@ function Core.startRenderLoop()
             Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
             Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI
             Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
-            Core.updateWingMode(dt)  -- Combined spin + wing
+            Core.updateWingMode(dt)
         end
         if Core.USE_OUTER3 then Core.outer3OrbitAngle=(Core.outer3OrbitAngle+math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI; Core.outer3SpinAngle=(Core.outer3SpinAngle+math.rad(Core.OUTER3_SPIN*60)*dt)%TWO_PI; Core.outer3SplitAngle=(Core.outer3SplitAngle-math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI end
         if Core.USE_OUTER4 then Core.outer4OrbitAngle=(Core.outer4OrbitAngle+math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI; Core.outer4SpinAngle=(Core.outer4SpinAngle+math.rad(Core.OUTER4_SPIN*60)*dt)%TWO_PI; Core.outer4SplitAngle=(Core.outer4SplitAngle-math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI end
@@ -755,32 +684,24 @@ function Core.startRenderLoop()
                     spinAngle = Core.outerSpinAngle
                 end
                 
-                -- ═══ MAGNET LOGIC WITH PER-AXIS CONTROL ═══
+                -- ═══ SIMPLE Y-AXIS MAGNET (LOOKS AT PLAYER) ═══
                 local shouldMagnet = Core.MAGNET_ENABLED
-                local wingMagnet = Core.WING_MAGNET_ENABLED and Core.USE_WING
-                local yMagnet = Core.WING_Y_MAGNET_ENABLED
-                local xMagnet = Core.WING_X_MAGNET_ENABLED
-                local zMagnet = Core.WING_Z_MAGNET_ENABLED
+                local wingYMagnet = Core.WING_Y_MAGNET_ENABLED and Core.USE_WING
                 
-                if Core.MAGNET_ENABLED and (isO2 and Core.USE_WING) then
-                    -- Wing mode: use per-axis magnet settings
-                    shouldMagnet = Core.WING_MAGNET_ENABLED
-                    -- Force Y-axis magnet for look-at
-                    yMagnet = true
-                end
-                
-                if shouldMagnet then
+                if Core.MAGNET_ENABLED then
                     local lk = CF_LOOKAT(tp, a.Position)
                     local sa = spinAngle
                     local sc = CF_ID
                     
-                    -- Build rotation with per-axis magnet control
+                    -- Build rotation
                     local rx, ry, rz = 0, 0, 0
+                    
                     if isO2 and Core.USE_WING then
-                        -- Wing mode: use per-axis magnet
-                        if Core.WING_Y_MAGNET_ENABLED then ry = sa else ry = 0 end
-                        if Core.WING_X_MAGNET_ENABLED then rx = sa else rx = 0 end
-                        if Core.WING_Z_MAGNET_ENABLED then rz = sa else rz = 0 end
+                        -- Wing mode: Y-axis magnet (looks at player)
+                        if Core.WING_Y_MAGNET_ENABLED then
+                            ry = sa  -- Y-axis magnet: looks at player
+                        end
+                        -- X and Z axes: no magnet (free rotation)
                     else
                         -- Normal mode: use spin mode
                         if spinMode == "Y" then ry = sa
@@ -788,9 +709,16 @@ function Core.startRenderLoop()
                         elseif spinMode == "Z" then rz = sa end
                     end
                     
-                    sc = CF_ANGLES(rx, ry, rz)
-                    Core.orbitParts[i].CFrame = lk * sc
-                    if d.angularVel then d.angularVel.AngularVelocity = V3_ZERO end
+                    if Core.MAGNET_ENABLED then
+                        local lk = CF_LOOKAT(tp, a.Position)
+                        local sa = spinAngle
+                        local sc = CF_ANGLES(0, sa, 0)  -- Y-axis magnet (looks at player)
+                        Core.orbitParts[i].CFrame = lk * sc
+                        if d.angularVel then d.angularVel.AngularVelocity = V3_ZERO end
+                    else
+                        Core.orbitParts[i].CFrame = CF_NEW(tp)
+                        if d.angularVel then d.angularVel.AngularVelocity = spinVec end
+                    end
                 else
                     Core.orbitParts[i].CFrame = CF_NEW(tp)
                     if d.angularVel then d.angularVel.AngularVelocity = spinVec end
@@ -823,7 +751,7 @@ end)
 
 -- ═════════════════════════════════════════════════════════
 -- INIT
--- ═════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 function Core.Init(GUI, Wing)
     Core.GUI = GUI
     Core.Wing = Wing
