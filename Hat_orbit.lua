@@ -1,0 +1,1413 @@
+--[[ Hat Orbit v9.9.9 - Clean Working Version ]]
+print("🟢 Loading Hat Orbit v9.9.9...")
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local plr = Players.LocalPlayer
+local chr = plr.Character
+local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
+
+-- ═══════════════════════════════════════════════════════
+-- SETTINGS
+-- ═══════════════════════════════════════════════════════
+local DISTANCE = 5
+local ORBIT_RADIUS = 3
+local ORBIT_SPEED = 60
+local ORBIT_MODE = "Y"
+local HEIGHT_OFFSET = 2
+local SPIN_SPEED = 1
+local ORBIT_ROTATION = 0
+
+local USE_OUTER2 = false
+local OUTER2_COUNT = 4
+local OUTER2_MODE = "X"
+local OUTER2_DISTANCE = 5
+local OUTER2_RADIUS = 3
+local OUTER2_SPEED = 60
+local OUTER2_HEIGHT = 2
+local OUTER2_SPIN = 1
+local OUTER2_ROTATION = 0
+local OUTER2_SPIN_MODE = "Y"
+
+local USE_OUTER3 = false
+local OUTER3_COUNT = 4
+local OUTER3_MODE = "Y"
+local OUTER3_DISTANCE = 5
+local OUTER3_RADIUS = 4
+local OUTER3_SPEED = 60
+local OUTER3_HEIGHT = 2
+local OUTER3_SPIN = 1
+local OUTER3_ROTATION = 0
+
+local USE_OUTER4 = false
+local OUTER4_COUNT = 4
+local OUTER4_MODE = "Z"
+local OUTER4_DISTANCE = 6
+local OUTER4_RADIUS = 5
+local OUTER4_SPEED = 45
+local OUTER4_HEIGHT = 3
+local OUTER4_SPIN = 1
+local OUTER4_ROTATION = 0
+
+local USE_SHOOT_OUT = false
+local SHOOT_OUT_RANGE = 15
+local SHOOT_OUT_SPEED = 120
+local SHOOT_OUT_ORBIT_SPEED = 60
+local USE_SHOOT_OUT_ORBIT = true
+
+local USE_INNER_RING = true
+local INNER_COUNT = 4
+local INNER_MODE = "DoubleLazer"
+local INNER_ORBIT_MODE = "Y"
+local INNER_DISTANCE = 2
+local INNER_ORBIT_RADIUS = 1.5
+local INNER_ORBIT_SPEED = 120
+local INNER_HEIGHT_OFFSET = 2
+local INNER_SPIN_SPEED = 2
+local INNER_LAZER_DISTANCE = 3
+local INNER_LAZER_HEIGHT = 2
+local INNER_LAZER_RANGE = 5
+local INNER_LAZER_SPEED = 180
+local INNER_LAZER_RADIUS = 1.2
+local INNER_LAZER_ORBIT_SPEED = 400
+local INNER_BEAM_GAP = 2
+
+local FB_ORBIT_SPEED = 150
+local FB_Y_SPIN_SPEED = 100
+local FB_DISTANCE = 2.5
+local FB_HEIGHT = 1.5
+local FB_SIZE = 3.5
+local FB_RANGE = 5
+local FB_SHOOT_SPEED = 200
+
+local DS_ORBIT_SPEED = 150
+local DS_Y_SPIN_SPEED = 100
+local DS_DISTANCE = 3
+local DS_HEIGHT = 2
+local DS_SIZE = 2.5
+local DS_CENTER_SPEED = 60
+local DS_CENTER_RADIUS = 3
+
+local USE_SHIELD = false
+local SHIELD_DISTANCE = 3
+local SHIELD_RADIUS = 2.5
+local SHIELD_SPEED = 90
+local SHIELD_HEIGHT = 1
+local SHIELD_LEFT_INDEX = 1
+local SHIELD_RIGHT_INDEX = 2
+
+local MAGNET_ENABLED = true
+local SMOOTHNESS = 12
+local MAX_HATS = 22
+local GUI_SCALE = 1.0
+
+local GIFT_ENABLED = false
+local GIFT_TARGET_NAME = ""
+local isActive = true
+
+local USE_SPLIT = false
+local SPLIT_RATIO = 0.5
+local USE_OUTER2_SPLIT = false
+local OUTER2_SPLIT_RATIO = 0.5
+local USE_OUTER3_SPLIT = false
+local OUTER3_SPLIT_RATIO = 0.5
+local USE_OUTER4_SPLIT = false
+local OUTER4_SPLIT_RATIO = 0.5
+
+local HOLD_SLOTS = {
+    {USE=false, DIST=-4, HGT=0, LOFF=0.7, ROFF=0.7, RX=-50, RY=140, RZ=0, LIDX=1, RIDX=2},
+    {USE=false, DIST=-10.5, HGT=0, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=3, RIDX=4},
+    {USE=false, DIST=-20.5, HGT=1, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=5, RIDX=6},
+    {USE=false, DIST=-30.5, HGT=1, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=7, RIDX=8},
+    {USE=false, DIST=-40.5, HGT=2, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=9, RIDX=10},
+    {USE=false, DIST=-50.5, HGT=3, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=11, RIDX=12},
+    {USE=false, DIST=-60.5, HGT=4, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=13, RIDX=14},
+    {USE=false, DIST=-70.5, HGT=5, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=15, RIDX=16},
+    {USE=false, DIST=-80.5, HGT=6, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=17, RIDX=18},
+    {USE=false, DIST=-90.5, HGT=7, LOFF=0.7, ROFF=0.7, RX=140, RY=0, RZ=0, LIDX=19, RIDX=20},
+}
+
+local USE_DLAZER_HOLD = false
+local DLAZER_LEFT_INDEX = 1
+local DLAZER_RIGHT_INDEX = 2
+local DLAZER_DISTANCE = 10
+local DLAZER_HEIGHT = 2
+local DLAZER_RANGE = 10
+local DLAZER_SHOOT_SPEED = 400
+local DLAZER_BEAM_RADIUS = 3
+local DLAZER_ORBIT_SPEED = 180
+local DLAZER_LEFT_OFFSET = 0.7
+local DLAZER_RIGHT_OFFSET = 0.7
+local DLAZER_ROT_X = 0
+local DLAZER_ROT_Y = 0
+local DLAZER_ROT_Z = 0
+
+local USE_FIREBALL_HOLD = false
+local FIREBALL_LEFT_INDEX = 1
+local FIREBALL_RIGHT_INDEX = 2
+local FIREBALL_DISTANCE = 5
+local FIREBALL_HEIGHT = 0
+local FIREBALL_ORBIT_SPEED = 180
+local FIREBALL_Y_SPIN_SPEED = 120
+local FIREBALL_SPHERE_SIZE = 4
+local FIREBALL_RANGE = 8
+local FIREBALL_SHOOT_SPEED = 200
+local FIREBALL_LEFT_OFFSET = 0.7
+local FIREBALL_RIGHT_OFFSET = 0.7
+local FIREBALL_ROT_X = 0
+local FIREBALL_ROT_Y = 0
+local FIREBALL_ROT_Z = 0
+
+local USE_WING = false
+local WING_MIN_X = -40; local WING_MAX_X = 40
+local WING_MIN_Y = -40; local WING_MAX_Y = 40
+local WING_MIN_Z = -40; local WING_MAX_Z = 40
+local WING_SPEED_X = 30; local WING_SPEED_Y = 30; local WING_SPEED_Z = 30
+
+local OUTER2_SPIN_MODE = "Y"
+
+local MAGNET_ENABLED = true
+local SMOOTHNESS = 12
+local MAX_HATS = 22
+local GUI_SCALE = 1.0
+
+local GIFT_ENABLED = false
+local GIFT_TARGET_NAME = ""
+local isActive = true
+
+local USE_SPLIT = false
+local SPLIT_RATIO = 0.5
+local USE_OUTER2_SPLIT = false
+local OUTER2_SPLIT_RATIO = 0.5
+local USE_OUTER3_SPLIT = false
+local OUTER3_SPLIT_RATIO = 0.5
+local USE_OUTER4_SPLIT = false
+local OUTER4_SPLIT_RATIO = 0.5
+
+-- ════════════════════════════════════════════════════════
+-- STATE
+-- ═══════════════════════════════════════════════════════
+local orbitData, orbitParts, handles, connections = {}, {}, {}, {}
+local outerOrbitAngle, innerOrbitAngle, innerLazerAngle, lazerOrbitAngle = 0,0,0,0
+local fireballZAngle, fireballYAngle, fireballPulse = 0,0,0
+local outerSpinAngle, innerSpinAngle = 0,0
+local outer2OrbitAngle, outer2SpinAngle = 0,0
+local outer3OrbitAngle, outer3SpinAngle = 0,0
+local outer4OrbitAngle, outer4SpinAngle = 0,0
+local dsZAngle, dsYAngle, dsCenterAngle = 0,0,0
+local shieldAngle = 0
+local shieldHats = {}
+local holdSlotHats = {{},{},{},{},{},{},{},{},{},{}}
+local outerSplitAngle, outer2SplitAngle, outer3SplitAngle, outer4SplitAngle = 0,0,0,0
+local heldHats = {}
+local dlazerHats = {}; local dlazerShootAngle = 0; local dlazerOrbitAngle = 0
+local fireballHats = {left={}, right={}}; local fireballHoldZAngle = 0; local fireballHoldYAngle = 0; local fireballHoldPulse = 0
+local shootOutAngle = 0
+local wingAngleX, wingAngleY, wingAngleZ = 0,0,0
+local wingDirX, wingDirY, wingDirZ = 1,1,1
+
+-- ═══════════════════════════════════════════════════════
+-- LAZY GETTERS
+-- ═══════════════════════════════════════════════════════
+local function getPlayer()
+    local p = Players.LocalPlayer
+    while not p do task.wait() end
+    return p
+end
+
+local function getCharacter()
+    local plr = Players.LocalPlayer
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local c = getCharacter()
+    return c:WaitForChild("HumanoidRootPart")
+end
+
+-- ════════════════════════════════════════════════════════
+-- HELPERS
+-- ════════════════════════════════════════════════════════
+local function waitForHRP()
+    while not hrp or not hrp.Parent do
+        hrp = getHRP()
+        if not hrp then task.wait() end
+    end
+end
+
+local function isWearable(inst)
+    return inst:IsA("Accessory") or inst:IsA("Hat")
+end
+
+local function cleanupHat(handle)
+    local data = orbitData[handle]; if not data then return end
+    if data.alignPos then data.alignPos:Destroy() end
+    if data.alignOrient then data.alignOrient:Destroy() end
+    if data.angularVel then data.angularVel:Destroy() end
+    if data.orbitPart then data.orbitPart:Destroy() end
+    if connections[handle] then connections[handle]:Disconnect(); connections[handle]=nil end
+    orbitData[handle]=nil
+    local idx=table.find(handles,handle) if idx then table.remove(handles,idx) end
+    local pdx=table.find(orbitParts,data.orbitPart) if pdx then table.remove(orbitParts,pdx) end
+    heldHats[handle]=nil
+    if shieldHats.left and shieldHats.left.handle==handle then shieldHats.left=nil end
+    if shieldHats.right and shieldHats.right.handle==handle then shieldHats.right=nil end
+    if dlazerHats.left and dlazerHats.left.handle==handle then dlazerHats.left=nil end
+    if dlazerHats.right and dlazerHats.right.handle==handle then dlazerHats.right=nil end
+    if fireballHats.left and fireballHats.left.handle==handle then fireballHats.left={} end
+    if fireballHats.right and fireballHats.right.handle==handle then fireballHats.right={} end
+    for _,slot in ipairs(holdSlotHats) do
+        if slot.left and slot.left.handle==handle then slot.left=nil end
+        if slot.right and slot.right.handle==handle then slot.right=nil end
+    end
+end
+
+local function setupHatOrbit(accessory)
+    if not accessory or not accessory.Parent then return end
+    local handle=accessory:FindFirstChild("Handle")
+    if not handle or orbitData[handle] then return end
+    if #handles>=MAX_HATS then return end
+    waitForHRP()
+    handle.Massless=true
+    handle.CustomPhysicalProperties=PhysicalProperties.new(0.0001,0,0,0,0)
+    handle.CanCollide=false; handle:BreakJoints()
+    for _,w in ipairs(handle:GetChildren()) do if w:IsA("Weld") or w:IsA("Motor6D") then w:Destroy() end end
+    handle.AssemblyLinearVelocity=Vector3.zero; handle.AssemblyAngularVelocity=Vector3.zero
+    pcall(function() if not handle.Anchored then handle:SetNetworkOwner(Players.LocalPlayer) end end)
+    local orbitPart=Instance.new("Part",workspace)
+    orbitPart.Name="HatOrbitRef_"..accessory.Name; orbitPart.Anchored=true; orbitPart.CanCollide=false; orbitPart.Transparency=1; orbitPart.Size=Vector3.new(0.2,0.2,0.2); orbitPart.Position=hrp.Position
+    local ap=Instance.new("AlignPosition",handle); ap.MaxForce=math.huge; ap.MaxVelocity=math.huge; ap.Responsiveness=200; ap.Enabled=true
+    ap.Attachment0=Instance.new("Attachment",handle); ap.Attachment1=Instance.new("Attachment",orbitPart)
+    local ao=Instance.new("AlignOrientation",handle); ao.MaxTorque=math.huge; ao.MaxAngularVelocity=math.huge; ao.Responsiveness=200; ao.Enabled=MAGNET_ENABLED
+    ao.Attachment0=ap.Attachment0; ao.Attachment1=ap.Attachment1
+    local av=Instance.new("BodyAngularVelocity",handle); av.MaxTorque=Vector3.new(math.huge,math.huge,math.huge); av.P=1250; av.AngularVelocity=Vector3.zero
+    orbitData[handle]={accessory=accessory,handle=handle,alignPos=ap,alignOrient=ao,angularVel=av,orbitPart=orbitPart}
+    table.insert(handles,handle); table.insert(orbitParts,orbitPart)
+    connections[handle]=accessory.AncestryChanged:Connect(function(_,p) local c=getCharacter(); if p~=c then cleanupHat(handle) end end)
+    handle.CFrame=orbitPart.CFrame
+    task.defer(function() if handle and handle.Parent then handle.CFrame=orbitPart.CFrame end end)
+end
+
+local function captureAllowedHats()
+    local c = getCharacter(); if not c then return end
+    waitForHRP()
+    for _,a in ipairs(c:GetChildren()) do if isWearable(a) then local h=a:FindFirstChild("Handle"); if h and not orbitData[h] then setupHatOrbit(a) end end end
+end
+
+local function removeAllHats() for h in pairs(orbitData) do cleanupHat(h) end end
+
+local function setMagnetEnabled(e) MAGNET_ENABLED=e; for _,d in pairs(orbitData) do if d.alignOrient then d.alignOrient.Enabled=e end end end
+
+local function resolveAnchor()
+    if GIFT_ENABLED and GIFT_TARGET_NAME~="" then local tp=Players:FindFirstChild(GIFT_TARGET_NAME); local tc=tp and tp.Character; local th=tc and tc:FindFirstChild("HumanoidRootPart"); if th then return th end end
+    return hrp
+end
+
+local function getHatHandlesSorted()
+    local s={} for h in pairs(orbitData) do table.insert(s,h) end; table.sort(s,function(a,b) return a.Name<b.Name end); return s
+end
+
+local function isWearable(inst)
+    return inst:IsA("Accessory") or inst:IsA("Hat")
+end
+
+-- ════════════════════════════════════════════════════════
+-- HOLD MODES
+-- ════════════════════════════════════════════════════════
+local function setShieldEnabled(enabled)
+    USE_SHIELD=enabled
+    if not enabled then if shieldHats.left then heldHats[shieldHats.left.handle]=nil end if shieldHats.right then heldHats[shieldHats.right.handle]=nil end shieldHats={} return end
+    local s=getHatHandlesSorted()
+    if #s<math.max(SHIELD_LEFT_INDEX,SHIELD_RIGHT_INDEX) then USE_SHIELD=false return end
+    for _,pick in ipairs({{side="left",idx=SHIELD_LEFT_INDEX},{side="right",idx=SHIELD_RIGHT_INDEX}}) do
+        local h=s[pick.idx]; local d=h and orbitData[h]
+        if h and d and not shieldHats[pick.side] and not heldHats[h] then heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; shieldHats[pick.side]={handle=h,data=d} end
+    end; shieldAngle=0
+end
+
+local function setHoldSlotEnabled(slotIdx, enabled)
+    local slot=HOLD_SLOTS[slotIdx]; local hats=holdSlotHats[slotIdx]; slot.USE=enabled
+    if not enabled then if hats.left then heldHats[hats.left.handle]=nil end if hats.right then heldHats[hats.right.handle]=nil end hats.left=nil; hats.right=nil return end
+    local c=getCharacter()
+    if not c or not c:FindFirstChild("LeftHand") or not c:FindFirstChild("RightHand") then slot.USE=false return end
+    local s=getHatHandlesSorted()
+    if #s<math.max(slot.LIDX,slot.RIDX) then slot.USE=false return end
+    for _,pick in ipairs({{side="left",idx=slot.LIDX},{side="right",idx=slot.RIDX}}) do
+        local h=s[pick.idx]; local d=h and orbitData[h]
+        if h and d and not hats[pick.side] and not heldHats[h] then heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; hats[pick.side]={handle=h,data=d} end
+    end
+end
+
+local function setDLazerHoldEnabled(enabled)
+    USE_DLAZER_HOLD=enabled
+    if not enabled then if dlazerHats.left then heldHats[dlazerHats.left.handle]=nil end if dlazerHats.right then heldHats[dlazerHats.right.handle]=nil end dlazerHats={} return end
+    local c=getCharacter()
+    if not c or not c:FindFirstChild("LeftHand") or not c:FindFirstChild("RightHand") then USE_DLAZER_HOLD=false return end
+    local s=getHatHandlesSorted()
+    if #s<math.max(DLAZER_LEFT_INDEX,DLAZER_RIGHT_INDEX) then USE_DLAZER_HOLD=false return end
+    for _,pick in ipairs({{side="left",idx=DLAZER_LEFT_INDEX},{side="right",idx=DLAZER_RIGHT_INDEX}}) do
+        local h=s[pick.idx]; local d=h and orbitData[h]
+        if h and d and not dlazerHats[pick.side] and not heldHats[h] then heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; dlazerHats[pick.side]={handle=h,data=d} end
+    end
+end
+
+local function ensureFireballStructure()
+    if type(fireballHats)~="table" then fireballHats={} end
+    if type(fireballHats.left)~="table" then fireballHats.left={} end
+    if type(fireballHats.right)~="table" then fireballHats.right={} end
+end
+
+local function setFireballHoldEnabled(enabled)
+    USE_FIREBALL_HOLD=enabled
+    if not enabled then if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.left={}; fireballHats.right={} return end
+    local c=getCharacter()
+    if not c or not c:FindFirstChild("LeftHand") or not c:FindFirstChild("RightHand") then USE_FIREBALL_HOLD=false return end
+    local s=getHatHandlesSorted()
+    if #s<math.max(FIREBALL_LEFT_INDEX,FIREBALL_RIGHT_INDEX) then USE_FIREBALL_HOLD=false return end
+    if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end
+    if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end
+    fireballHats.left={}; fireballHats.right={}
+    for _,pick in ipairs({{side="left",idx=FIREBALL_LEFT_INDEX},{side="right",idx=FIREBALL_RIGHT_INDEX}}) do
+        local h=s[pick.idx]; local d=h and orbitData[h]
+        if h and d and not heldHats[h] then heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; fireballHats[pick.side]={handle=h,data=d} end
+    end
+    if not (fireballHats.left and fireballHats.left.handle) and not (fireballHats.right and fireballHats.right.handle) then
+        USE_FIREBALL_HOLD=false
+        if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end
+        if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end
+    end
+end
+
+-- ═════════════════════════════════════════════════════════
+-- UPDATE FUNCTIONS
+-- ════════════════════════════════════════════════════════
+local function updateShield(dt)
+    if not USE_SHIELD then return end; if not (shieldHats.left or shieldHats.right) then return end
+    local a=resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
+    shieldAngle=(shieldAngle+math.rad(SHIELD_SPEED)*dt)%(math.pi*2)
+    for side,hd in pairs(shieldHats) do
+        if hd and hd.handle and hd.handle.Parent and hd.data and hd.data.orbitPart then
+            local o=(side=="left") and math.pi or 0; local ang=shieldAngle+o
+            local tp=a.Position+b*SHIELD_DISTANCE+u*SHIELD_HEIGHT+r*math.cos(ang)*SHIELD_RADIUS+u*math.sin(ang)*SHIELD_RADIUS
+            hd.data.orbitPart.CFrame=CFrame.new(tp)*CFrame.Angles(0,math.rad(90),0)
+        end
+    end
+end
+
+local function updateHoldSlot(slotIdx)
+    local slot=HOLD_SLOTS[slotIdx]; local hats=holdSlotHats[slotIdx]
+    if not slot.USE then return end; if not (hats.left or hats.right) then return end
+    local c=getCharacter()
+    if not c then return end
+    local lh=c:FindFirstChild("LeftHand"); local rh=c:FindFirstChild("RightHand"); if not lh or not rh then return end
+    local rot=CFrame.Angles(math.rad(slot.RX),math.rad(slot.RY),math.rad(slot.RZ))
+    local ld=hats.left
+    if ld and ld.handle and ld.handle.Parent and ld.data and ld.data.orbitPart then ld.data.orbitPart.CFrame=lh.CFrame*CFrame.new(slot.LOFF,slot.HGT,slot.DIST)*rot end
+    local rd=hats.right
+    if rd and rd.handle and rd.handle.Parent and rd.data and rd.data.orbitPart then rd.data.orbitPart.CFrame=rh.CFrame*CFrame.new(slot.ROFF,slot.HGT,slot.DIST)*rot end
+end
+
+local function updateDLazerHold(dt)
+    if not USE_DLAZER_HOLD then return end; if not (dlazerHats.left or dlazerHats.right) then return end
+    local c=getCharacter()
+    if not c then return end
+    local lh=c:FindFirstChild("LeftHand"); local rh=c:FindFirstChild("RightHand"); if not lh or not rh then return end
+    dlazerShootAngle=(dlazerShootAngle+math.rad(DLAZER_SHOOT_SPEED)*dt)%(math.pi*2)
+    dlazerOrbitAngle=(dlazerOrbitAngle+math.rad(DLAZER_ORBIT_SPEED)*dt)%(math.pi*2)
+    local rot=CFrame.Angles(math.rad(DLAZER_ROT_X),math.rad(DLAZER_ROT_Y),math.rad(DLAZER_ROT_Z))
+    local ld=dlazerHats.left
+    if ld and ld.handle and ld.handle.Parent and ld.data and ld.data.orbitPart then
+        local pulse=math.sin(dlazerShootAngle)*DLAZER_RANGE
+        local orbitX=math.cos(dlazerOrbitAngle)*DLAZER_BEAM_RADIUS; local orbitY=math.sin(dlazerOrbitAngle)*DLAZER_BEAM_RADIUS
+        local pulseOffset=CFrame.new(orbitX,orbitY,pulse)
+        ld.data.orbitPart.CFrame=lh.CFrame*CFrame.new(DLAZER_LEFT_OFFSET,DLAZER_HEIGHT,-DLAZER_DISTANCE)*CFrame.Angles(math.rad(DLAZER_ROT_X),math.rad(DLAZER_ROT_Y),math.rad(DLAZER_ROT_Z))*pulseOffset
+    end
+    local rd=dlazerHats.right
+    if rd and rd.handle and rd.handle.Parent and rd.data and rd.data.orbitPart then
+        local pulse=math.sin(dlazerShootAngle)*DLAZER_RANGE
+        local orbitX=math.cos(dlazerOrbitAngle)*DLAZER_BEAM_RADIUS; local orbitY=math.sin(dlazerOrbitAngle)*DLAZER_BEAM_RADIUS
+        local pulseOffset=CFrame.new(orbitX,orbitY,pulse)
+        rd.data.orbitPart.CFrame=rh.CFrame*CFrame.new(DLAZER_RIGHT_OFFSET,DLAZER_HEIGHT,-DLAZER_DISTANCE)*CFrame.Angles(math.rad(DLAZER_ROT_X),math.rad(DLAZER_ROT_Y),math.rad(DLAZER_ROT_Z))*pulseOffset
+    end
+end
+
+local function ensureFireballStructure()
+    if type(fireballHats)~="table" then fireballHats={} end
+    if type(fireballHats.left)~="table" then fireballHats.left={} end
+    if type(fireballHats.right)~="table" then fireballHats.right={} end
+end
+
+local function setFireballHoldEnabled(enabled)
+    USE_FIREBALL_HOLD=enabled
+    if not enabled then if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.left={}; fireballHats.right={} return end
+    local c=getCharacter()
+    if not c or not c:FindFirstChild("LeftHand") or not c:FindFirstChild("RightHand") then USE_FIREBALL_HOLD=false return end
+    local s=getHatHandlesSorted()
+    if #s<math.max(FIREBALL_LEFT_INDEX,FIREBALL_RIGHT_INDEX) then USE_FIREBALL_HOLD=false return end
+    if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end
+    if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end
+    fireballHats.left={}; fireballHats.right={}
+    for _,pick in ipairs({{side="left",idx=FIREBALL_LEFT_INDEX},{side="right",idx=FIREBALL_RIGHT_INDEX}}) do
+        local h=s[pick.idx]; local d=h and orbitData[h]
+        if h and d and not heldHats[h] then heldHats[h]=true; if d.alignOrient then d.alignOrient.Enabled=true end; fireballHats[pick.side]={handle=h,data=d} end
+    end
+    if not (fireballHats.left and fireballHats.left.handle) and not (fireballHats.right and fireballHats.right.handle) then
+        USE_FIREBALL_HOLD=false
+        if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end
+        if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end
+    end
+end
+
+local function updateFireballHold(dt)
+    if not USE_FIREBALL_HOLD then return end
+    local c=getCharacter()
+    if not c then USE_FIREBALL_HOLD=false return end
+    local lh=c:FindFirstChild("LeftHand"); local rh=c:FindFirstChild("RightHand"); if not lh or not rh then USE_FIREBALL_HOLD=false return end
+    local leftOk=fireballHats.left and fireballHats.left.handle and fireballHats.left.handle.Parent
+    local rightOk=fireballHats.right and fireballHats.right.handle and fireballHats.right.handle.Parent
+    if not leftOk and not rightOk then USE_FIREBALL_HOLD=false; if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.left={}; fireballHats.right={} return end
+    fireballHoldZAngle=(fireballHoldZAngle+math.rad(FIREBALL_ORBIT_SPEED)*dt)%(math.pi*2)
+    fireballHoldYAngle=(fireballHoldYAngle+math.rad(FIREBALL_Y_SPIN_SPEED)*dt)%(math.pi*2)
+    fireballHoldPulse=(fireballHoldPulse+math.rad(FIREBALL_SHOOT_SPEED)*dt)%(math.pi*2)
+    local sphereRadius=FIREBALL_SPHERE_SIZE
+    local pulseAmount=math.sin(fireballHoldPulse)*FIREBALL_RANGE
+    local currentDistance=FIREBALL_DISTANCE+pulseAmount
+    if leftOk then
+        local ld=fireballHats.left
+        if ld and ld.data and ld.data.orbitPart then
+            local theta=fireballHoldZAngle; local phi=fireballHoldYAngle
+            local x=sphereRadius*math.sin(phi)*math.cos(theta); local y=sphereRadius*math.sin(phi)*math.sin(theta); local z=sphereRadius*math.cos(phi)
+            local handCFrame=lh.CFrame*CFrame.new(-FIREBALL_LEFT_OFFSET,FIREBALL_HEIGHT,-currentDistance)*CFrame.Angles(math.rad(FIREBALL_ROT_X),math.rad(FIREBALL_ROT_Y),math.rad(FIREBALL_ROT_Z))
+            local orbitOffset=handCFrame:PointToWorldSpace(Vector3.new(x,y,z))-handCFrame.Position
+            ld.data.orbitPart.CFrame=handCFrame*CFrame.new(orbitOffset.X,orbitOffset.Y,orbitOffset.Z)
+        end
+    else if fireballHats.left and fireballHats.left.handle then heldHats[fireballHats.left.handle]=nil end fireballHats.left={} end
+    if rightOk then
+        local rd=fireballHats.right
+        if rd and rd.data and rd.data.orbitPart then
+            local theta=fireballHoldZAngle+math.pi; local phi=fireballHoldYAngle+math.pi
+            local x=sphereRadius*math.sin(phi)*math.cos(theta); local y=sphereRadius*math.sin(phi)*math.sin(theta); local z=sphereRadius*math.cos(phi)
+            local handCFrame=rh.CFrame*CFrame.new(FIREBALL_RIGHT_OFFSET,FIREBALL_HEIGHT,-currentDistance)*CFrame.Angles(math.rad(FIREBALL_ROT_X),math.rad(FIREBALL_ROT_Y),math.rad(FIREBALL_ROT_Z))
+            local orbitOffset=handCFrame:PointToWorldSpace(Vector3.new(x,y,z))-handCFrame.Position
+            rd.data.orbitPart.CFrame=handCFrame*CFrame.new(orbitOffset.X,orbitOffset.Y,orbitOffset.Z)
+        end
+    else if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.right={} end
+end
+
+-- ═════════════════════════════════════════════════════════
+-- WING MODE (COMBINED SPIN + WING)
+-- ════════════════════════════════════════════════════════
+local function updateWingMode(dt)
+    if not USE_OUTER2 then return end
+    local spinVal = OUTER2_SPIN
+    local function updateAxis(axis)
+        local spinVal = OUTER2_SPIN
+        local minKey = "WING_MIN_"..axis
+        local maxKey = "WING_MAX_"..axis
+        local speedKey = "WING_SPEED_"..axis
+        local angleKey = "wingAngle"..axis
+        local dirKey = "wingDir"..axis
+        
+        local minVal = _G[minKey]
+        local maxVal = _G[maxKey]
+        local spinVal = OUTER2_SPIN
+        local wingSpeed = _G[speedKey]
+        
+        -- 1. BASE SPIN (always applied if > 0)
+        if OUTER2_SPIN and OUTER2_SPIN > 0 then
+            local spinRad = math.rad(OUTER2_SPIN * 60)
+            _G[angleKey] = (_G[angleKey] or 0) + (math.rad(OUTER2_SPIN * 60) * dt)
+        end
+        
+        -- 2. WING OSCILLATION (added on top of spin)
+        if USE_WING then
+            local minVal = _G["WING_MIN_"..axis]
+            local maxVal = _G["WING_MAX_"..axis]
+            local wingSpeed = _G["WING_SPEED_"..axis]
+            
+            if maxVal ~= minVal and wingSpeed and wingSpeed > 0 then
+                local minRad = math.rad(minVal)
+                local maxRad = math.rad(maxVal)
+                local speed = math.rad(wingSpeed)
+                local dir = _G["wingDir"..axis] or 1
+                
+                local wingOsc = (_G[angleKey] or 0) + (speed * dt * (_G[dirKey] or 1))
+                
+                if wingOsc >= math.rad(maxVal) then
+                    _G[angleKey] = math.rad(maxVal)
+                    _G["wingDir"..axis] = -1
+                elseif wingOsc <= math.rad(minVal) then
+                    _G[angleKey] = math.rad(minVal)
+                    _G["wingDir"..axis] = 1
+                else
+                    _G[angleKey] = wingOsc
+                end
+            end
+        end
+    end
+    
+    updateAxis("X")
+    updateAxis("Y")
+    updateAxis("Z")
+end
+
+-- ══════════════════════════════════════════════════════════
+-- RENDER LOOP
+-- ═════════════════════════════════════════════════════════
+local function squarePos(progress, radius, rot)
+    local sideLen = 2 * radius
+    local perimeter = 8 * radius
+    local perimeterAngle = progress * perimeter
+    local side = math.floor(perimeterAngle / sideLen) % 4
+    local sideProgress = (perimeterAngle % sideLen) / sideLen
+    local x, y
+    if side == 0 then x = radius; y = -radius + sideProgress * sideLen
+    elseif side == 1 then x = radius - sideProgress * sideLen; y = radius
+    elseif side == 2 then x = -radius; y = radius - sideProgress * sideLen
+    else x = -radius + sideProgress * sideLen; y = -radius end
+    local cr = math.cos(rot); local sr = math.sin(rot)
+    return x * cr - y * sr, x * sr + y * cr
+end
+
+RunService.RenderStepped:Connect(function(dt)
+    if not isActive then return end
+    if not hrp or not hrp.Parent then
+        hrp = getHRP()
+        return
+    end
+    
+    -- Angle updates
+    outerOrbitAngle = (outerOrbitAngle + math.rad(ORBIT_SPEED) * dt) % (math.pi * 2)
+    outerSpinAngle = (outerSpinAngle + math.rad(SPIN_SPEED * 60) * dt) % (math.pi * 2)
+    outerSplitAngle = (outerSplitAngle - math.rad(ORBIT_SPEED) * dt) % (math.pi * 2)
+    
+    if USE_OUTER2 then
+        outer2OrbitAngle = (outer2OrbitAngle + math.rad(OUTER2_SPEED) * dt) % (math.pi * 2)
+        outer2SpinAngle = (outer2SpinAngle + math.rad(OUTER2_SPIN * 60) * dt) % (math.pi * 2)
+        outer2SplitAngle = (outer2SplitAngle - math.rad(OUTER2_SPEED) * dt) % (math.pi * 2)
+        -- Wing mode update
+        if USE_WING then
+            local spinVal = OUTER2_SPIN
+            local spinRad = math.rad(OUTER2_SPIN * 60) * dt
+            for _, axis in ipairs({"X","Y","Z"}) do
+                _G["wingAngle"..axis] = (_G["wingAngle"..axis] or 0) + math.rad(OUTER2_SPIN * 60) * dt
+                if USE_WING then
+                    local minVal = _G["WING_MIN_"..axis]
+                    local maxVal = _G["WING_MAX_"..axis]
+                    local wingSpeed = _G["WING_SPEED_"..axis]
+                    if maxVal ~= minVal and WING_SPEED_X and WING_SPEED_X > 0 then
+                        local minRad = math.rad(_G["WING_MIN_"..axis])
+                        local maxRad = math.rad(_G["WING_MAX_"..axis])
+                        local speed = math.rad(_G["WING_SPEED_"..axis] or 30)
+                        local dir = _G["wingDir"..axis] or 1
+                        local wingOsc = (_G["wingAngle"..axis] or 0) + (speed * dt * (_G["wingDir"..axis] or 1))
+                        if wingOsc >= math.rad(_G["WING_MAX_"..axis]) then
+                            _G["wingAngle"..axis] = math.rad(_G["WING_MAX_"..axis])
+                            _G["wingDir"..axis] = -1
+                        elseif wingOsc <= math.rad(_G["WING_MIN_"..axis]) then
+                            _G["wingAngle"..axis] = math.rad(_G["WING_MIN_"..axis])
+                            _G["wingDir"..axis] = 1
+                        else
+                            _G["wingAngle"..axis] = wingOsc
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if USE_OUTER3 then outer3OrbitAngle = (outer3OrbitAngle + math.rad(OUTER3_SPEED) * dt) % (math.pi * 2); outer3SpinAngle = (outer3SpinAngle + math.rad(OUTER3_SPIN * 60) * dt) % (math.pi * 2); outer3SplitAngle = (outer3SplitAngle - math.rad(OUTER3_SPEED) * dt) % (math.pi * 2) end
+    if USE_OUTER4 then outer4OrbitAngle = (outer4OrbitAngle + math.rad(OUTER4_SPEED) * dt) % (math.pi * 2); outer4SpinAngle = (outer4SpinAngle + math.rad(OUTER4_SPIN * 60) * dt) % (math.pi * 2); outer4SplitAngle = (outer4SplitAngle - math.rad(OUTER4_SPEED) * dt) % (math.pi * 2) end
+    
+    if USE_INNER_RING then
+        innerOrbitAngle = (innerOrbitAngle + math.rad(INNER_ORBIT_SPEED) * dt) % (math.pi * 2)
+        innerSpinAngle = (innerSpinAngle + math.rad(INNER_SPIN_SPEED * 60) * dt) % (math.pi * 2)
+        if INNER_MODE == "Lazer" or INNER_MODE == "DoubleLazer" then
+            innerLazerAngle = (innerLazerAngle + math.rad(INNER_LAZER_SPEED) * dt) % (math.pi * 2)
+            lazerOrbitAngle = (lazerOrbitAngle + math.rad(INNER_LAZER_ORBIT_SPEED) * dt) % (math.pi * 2)
+        end
+        if INNER_MODE == "Fireball" then
+            fireballZAngle = (fireballZAngle + math.rad(FB_ORBIT_SPEED) * dt) % (math.pi * 2)
+            fireballYAngle = (fireballYAngle + math.rad(FB_Y_SPIN_SPEED) * dt) % (math.pi * 2)
+            fireballPulse = (fireballPulse + math.rad(FB_SHOOT_SPEED) * dt) % (math.pi * 2)
+        end
+        if INNER_MODE == "DoubleStar" then
+            dsZAngle = (dsZAngle + math.rad(DS_ORBIT_SPEED) * dt) % (math.pi * 2)
+            dsYAngle = (dsYAngle + math.rad(DS_Y_SPIN_SPEED) * dt) % (math.pi * 2)
+            dsCenterAngle = (dsCenterAngle + math.rad(DS_CENTER_SPEED) * dt) % (math.pi * 2)
+        end
+    end
+    
+    shootOutAngle = (shootOutAngle + math.rad(SHOOT_OUT_SPEED) * dt) % (math.pi * 2)
+    
+    updateShield(dt)
+    for i = 1, 10 do updateHoldSlot(i) end
+    updateDLazerHold(dt)
+    updateFireballHold(dt)
+    
+    -- Build available indices
+    local availableIndices = {}
+    for i = 1, #orbitParts do
+        local h = handles[i]
+        if h and not heldHats[h] then table.insert(availableIndices, i) end
+    end
+    local availCount = #availableIndices
+    if availCount == 0 then return end
+    
+    local a = resolveAnchor()
+    local b = -a.CFrame.LookVector
+    local r = a.CFrame.RightVector
+    local u = a.CFrame.UpVector
+    
+    local function uv(mode)
+        if mode == "X" then return u, b
+        elseif mode == "Z" then return r, u
+        else return r, b end
+    end
+    local u1, v1 = uv(ORBIT_MODE)
+    local u2, v2 = uv(OUTER2_MODE)
+    local u3, v3 = uv(OUTER3_MODE)
+    local u4, v4 = uv(OUTER4_MODE)
+    local uIn, vIn = uv(INNER_ORBIT_MODE)
+    
+    local innerCap = USE_INNER_RING and math.min(INNER_COUNT, availCount) or 0
+    local rem = availCount - innerCap
+    local o2c = USE_OUTER2 and math.min(OUTER2_COUNT, rem) or 0; rem = rem - o2c
+    local o3c = USE_OUTER3 and math.min(OUTER3_COUNT, rem) or 0; rem = rem - o3c
+    local o4c = USE_OUTER4 and math.min(OUTER4_COUNT, rem) or 0
+    local o1c = math.max(rem - o4c, 0)
+    
+    local alpha = 1 - math.exp(-SMOOTHNESS * 10 * dt)
+    
+    for availIdx, i in ipairs(availableIndices) do
+        local op = orbitParts[i]
+        local h = handles[i]
+        local d = orbitData[h]
+        if not d then continue end
+        
+        local tp
+        local availOuterIdx = availIdx - innerCap
+        local isIn = availIdx <= innerCap
+        local isO2 = not isIn and availOuterIdx <= o2c
+        local isO3 = not isIn and not isO2 and availOuterIdx <= (o2c + o3c)
+        local isO4 = not isIn and not isO2 and not isO3 and availOuterIdx <= (o2c + o3c + o4c)
+        
+        if isIn then
+            local ringIdx = availIdx - 1
+            local ringCount = innerCap
+            
+            if INNER_MODE == "Ring" then
+                local cp = a.Position + b * INNER_DISTANCE + u * INNER_HEIGHT_OFFSET
+                local ang = (2 * math.pi / innerCap) * (availIdx - 1) + innerOrbitAngle
+                tp = cp + uIn * math.cos(ang) * INNER_ORBIT_RADIUS + vIn * math.sin(ang) * INNER_ORBIT_RADIUS
+            elseif INNER_MODE == "Lazer" then
+                local osc = math.sin(innerLazerAngle) * INNER_LAZER_RANGE
+                local bd = INNER_LAZER_DISTANCE + osc
+                if availIdx == innerCap then
+                    local ra = lazerOrbitAngle
+                    local ro = r * math.cos(ra) * INNER_LAZER_RADIUS + u * math.sin(ra) * INNER_LAZER_RADIUS
+                    tp = a.Position + b * bd + u * INNER_LAZER_HEIGHT + ro
+                else
+                    local so = (availIdx - 1) * 0.03
+                    local sp = (availIdx - 1) * 0.02
+                    tp = a.Position + b * (bd + so) + u * (INNER_LAZER_HEIGHT + sp)
+                end
+            elseif INNER_MODE == "DoubleLazer" then
+                local half = math.ceil(innerCap / 2)
+                local isBeam1 = availIdx <= half
+                local beamIdx = isBeam1 and (availIdx - 1) or (availIdx - half - 1)
+                local beamCount = isBeam1 and half or (innerCap - half)
+                local isTip = (isBeam1 and availIdx == half) or (not isBeam1 and availIdx == innerCap)
+                local osc = math.sin(innerLazerAngle) * INNER_LAZER_RANGE
+                local bd = INNER_LAZER_DISTANCE + osc
+                local gap = INNER_BEAM_GAP
+                local sideOffset = isBeam1 and (-gap / 2) or (gap / 2)
+                local beamCenter = a.Position + b * bd + u * INNER_LAZER_HEIGHT + r * sideOffset
+                if isTip then
+                    local ra = lazerOrbitAngle
+                    local ro = r * math.cos(ra) * INNER_LAZER_RADIUS + u * math.sin(ra) * INNER_LAZER_RADIUS
+                    tp = beamCenter + ro
+                else
+                    local trailIndex = beamCount - beamIdx - 1
+                    local trailDist = trailIndex * 0.8
+                    tp = beamCenter - b * trailDist
+                end
+            elseif INNER_MODE == "DoubleStar" then
+                local sc = math.ceil(innerCap / 2)
+                local isA = availIdx <= sc
+                local gi = isA and (availIdx - 1) or (availIdx - sc - 1)
+                local gs = math.max(isA and sc or (innerCap - sc), 1)
+                local bc = a.Position + b * DS_DISTANCE + u * DS_HEIGHT
+                local sa = dsCenterAngle + (isA and 0 or math.pi)
+                local scp = bc + r * math.cos(sa) * DS_CENTER_RADIUS + b * math.sin(sa) * DS_CENTER_RADIUS
+                local ph = (2 * math.pi / gs) * gi
+                local za = dsZAngle + ph
+                local lx = math.sin(za) * DS_SIZE
+                local ly = math.cos(za) * DS_SIZE
+                local cr = math.cos(dsYAngle)
+                local sr = math.sin(dsYAngle)
+                local wz = lx * cr
+                local wx = lx * sr
+                tp = scp + b * wz + r * wx + u * ly
+            else
+                local ro = math.sin(fireballPulse) * FB_RANGE
+                local bd = FB_DISTANCE + ro
+                local ph = (2 * math.pi / innerCap) * (availIdx - 1)
+                local za = fireballZAngle + ph
+                local lx = math.sin(za) * FB_SIZE
+                local ly = math.cos(za) * FB_SIZE
+                local cr = math.cos(fireballYAngle)
+                local sr = math.sin(fireballYAngle)
+                local wz = lx * cr
+                local wx = lx * sr
+                tp = a.Position + b * (bd + wz) + r * wx + u * (FB_HEIGHT + ly)
+            end
+        else
+            local ringCount, ringIdx, ringAngle, ringSplitAngle, ringSplitRatio, ringRot
+            local axisU, axisV, ringRadius, cp
+            local useSquare, useSplit, useShootOut, splitRatio
+            local shootOutRange, shootOutSpeed, shootOutOrbitSpeed
+            
+            if availOuterIdx <= o2c then
+                ringCount = o2c; ringIdx = availOuterIdx - 1
+                ringAngle = outer2OrbitAngle; ringSplitAngle = outer2SplitAngle; ringSplitRatio = OUTER2_SPLIT_RATIO
+                ringRot = math.rad(OUTER2_ROTATION)
+                cp = a.Position + b * OUTER2_DISTANCE + u * OUTER2_HEIGHT
+                axisU, axisV = u2, v2
+                ringRadius = OUTER2_RADIUS
+                useSplit = USE_OUTER2_SPLIT; splitRatio = OUTER2_SPLIT_RATIO
+                useShootOut = false
+            elseif availOuterIdx <= o2c + o3c then
+                ringCount = o3c; ringIdx = availOuterIdx - o2c - 1
+                ringAngle = outer3OrbitAngle; ringSplitAngle = outer3SplitAngle; ringSplitRatio = OUTER3_SPLIT_RATIO
+                ringRot = math.rad(OUTER3_ROTATION)
+                cp = a.Position + b * OUTER3_DISTANCE + u * OUTER3_HEIGHT
+                axisU, axisV = u3, v3
+                ringRadius = OUTER3_RADIUS
+                useSplit = USE_OUTER3_SPLIT; splitRatio = OUTER3_SPLIT_RATIO
+                useShootOut = false
+            elseif availOuterIdx <= o2c + o3c + o4c then
+                ringCount = o4c; ringIdx = availOuterIdx - o2c - o3c - 1
+                ringAngle = outer4OrbitAngle; ringSplitAngle = outer4SplitAngle; ringSplitRatio = OUTER4_SPLIT_RATIO
+                ringRot = math.rad(OUTER4_ROTATION)
+                cp = a.Position + b * OUTER4_DISTANCE + u * OUTER4_HEIGHT
+                axisU, axisV = u4, v4
+                ringRadius = OUTER4_RADIUS
+                useSplit = USE_OUTER4_SPLIT; splitRatio = OUTER4_SPLIT_RATIO
+                useShootOut = false
+            else
+                ringCount = o1c; ringIdx = availOuterIdx - o2c - o3c - o4c - 1
+                ringAngle = outerOrbitAngle; ringSplitAngle = outerSplitAngle; ringSplitRatio = SPLIT_RATIO
+                ringRot = math.rad(ORBIT_ROTATION)
+                cp = a.Position + b * DISTANCE + u * HEIGHT_OFFSET
+                axisU, axisV = u1, v1
+                ringRadius = ORBIT_RADIUS
+                useSplit = USE_SPLIT; splitRatio = SPLIT_RATIO
+                useShootOut = USE_SHOOT_OUT
+                shootOutRange = SHOOT_OUT_RANGE; shootOutSpeed = SHOOT_OUT_SPEED; shootOutOrbitSpeed = SHOOT_OUT_ORBIT_SPEED
+            end
+            
+            if useShootOut then
+                local hatAngle = (2 * math.pi / ringCount) * ringIdx + ringAngle
+                local shootOutProgress = (math.sin(shootOutAngle) + 1) * 0.5
+                local radialDistance = ringRadius + shootOutProgress * shootOutRange
+                local orbitAngle = ringAngle
+                if USE_SHOOT_OUT_ORBIT then orbitAngle = ringAngle + (shootOutOrbitSpeed / 60) * tick() % (math.pi * 2) end
+                local dirX = math.cos(hatAngle); local dirY = math.sin(hatAngle)
+                if USE_SHOOT_OUT_ORBIT then
+                    local cosO = math.cos(orbitAngle - ringAngle)
+                    local sinO = math.sin(orbitAngle - ringAngle)
+                    local rotatedX = dirX * cosO - dirY * sinO
+                    local rotatedY = dirX * sinO + dirY * cosO
+                    dirX, dirY = rotatedX, rotatedY
+                end
+                tp = cp + axisU * (dirX * radialDistance) + axisV * (dirY * radialDistance)
+            elseif useSplit then
+                local sc = math.floor(ringCount * splitRatio)
+                local fwd = ringIdx < sc
+                local ri = fwd and ringIdx or (ringIdx - sc)
+                local ang = fwd and ringAngle or ringSplitAngle
+                local cap = fwd and sc or (ringCount - sc)
+                local a2 = (2 * math.pi / math.max(cap, 1)) * ri + ang
+                tp = cp + axisU * math.cos(a2) * ringRadius + axisV * math.sin(a2) * ringRadius
+            else
+                local ang = (2 * math.pi / math.max(ringCount, 1)) * ringIdx + ringAngle
+                tp = cp + axisU * math.cos(ang) * ringRadius + axisV * math.sin(ang) * ringRadius
+            end
+            
+            if isO2 and USE_WING then
+                local wingCFrame = CFrame.Angles(_G.wingAngleX or 0, _G.wingAngleY or 0, _G.wingAngleZ or 0)
+                tp = (tp - cp) + cp
+                orbitParts[i].CFrame = CFrame.new(tp) * wingCFrame
+            end
+        end
+        
+        op.Position = op.Position:Lerp(tp, alpha)
+        if not (isO2 and USE_WING) then
+            local spinMode = SPIN_MODE
+            local spinVec = (SPIN_MODE=="X") and Vector3.new(10,0,0) or (SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
+            local spinAngle = outerSpinAngle
+            
+            if isO2 then
+                spinMode = OUTER2_SPIN_MODE
+                spinVec = (OUTER2_SPIN_MODE=="X") and Vector3.new(10,0,0) or (OUTER2_SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
+                spinAngle = outer2SpinAngle
+            elseif isO3 then spinAngle = outer3SpinAngle
+            elseif isO4 then spinAngle = outer4SpinAngle
+            else spinAngle = outerSpinAngle end
+            
+            -- MAGNET: Y-axis look-at for wing mode, normal spin mode otherwise
+            if MAGNET_ENABLED then
+                local lk = CFrame.lookAt(tp, a.Position)
+                local sa = (isO2 and outer2SpinAngle) or spinAngle
+                local sc = CFrame.Angles(0, sa, 0)  -- Y-axis magnet: looks at player
+                op.CFrame = lk * CFrame.Angles(0, sa, 0)
+                if d.angularVel then d.angularVel.AngularVelocity = Vector3.zero end
+            else
+                op.CFrame = CFrame.new(tp)
+                if d.angularVel then d.angularVel.AngularVelocity = (SPIN_MODE=="X") and Vector3.new(10,0,0) or (SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10) end
+            end
+        end
+    end
+end)
+
+-- ════════════════════════════════════════════════════════
+-- CHARACTER HOOKS
+-- ════════════════════════════════════════════════════════
+local function onChar(c)
+    chr = c
+    hrp = c:WaitForChild("HumanoidRootPart")
+    removeAllHats()
+    task.wait(0.3)
+    captureAllowedHats()
+    c.ChildAdded:Connect(function(ch)
+        task.wait()
+        if isWearable(ch) then setupHatOrbit(ch) end
+    end)
+end
+
+if plr.Character then onChar(plr.Character) end
+plr.CharacterAdded:Connect(onChar)
+
+-- ════════════════════════════════════════════════════════
+-- GUI
+-- ════════════════════════════════════════════════════════
+local function createGUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "HatOrbitUI"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = plr:WaitForChild("PlayerGui")
+    
+    local main = Instance.new("Frame", screenGui)
+    main.Size = UDim2.new(0, 280, 0, 580)
+    main.Position = UDim2.new(0.5, -140, 0.5, -290)
+    main.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+    main.BackgroundTransparency = 0.08
+    main.BorderSizePixel = 0
+    main.Active = true
+    main.Draggable = true
+    Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
+    
+    local uiScale = Instance.new("UIScale", main)
+    uiScale.Scale = GUI_SCALE
+    
+    local bar = Instance.new("Frame", main)
+    bar.Size = UDim2.new(1, 0, 0, 34)
+    bar.BackgroundColor3 = Color3.fromRGB(28, 28, 35)
+    bar.BorderSizePixel = 0
+    bar.ZIndex = 2
+    Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 10)
+    
+    local title = Instance.new("TextLabel", bar)
+    title.Size = UDim2.new(1, -50, 1, 0)
+    title.Position = UDim2.new(0, 14, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "🔥 Hat Orbit v9.9.9"
+    title.TextColor3 = Color3.new(1, 1, 1)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 13
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 3
+    
+    local powerBtn = Instance.new("TextButton", bar)
+    powerBtn.Size = UDim2.new(0, 34, 0, 24)
+    powerBtn.Position = UDim2.new(1, -68, 0.5, -12)
+    powerBtn.Text = "⏻"
+    powerBtn.BackgroundColor3 = Color3.fromRGB(60, 200, 60)
+    powerBtn.TextColor3 = Color3.new(1, 1, 1)
+    powerBtn.Font = Enum.Font.GothamBold
+    powerBtn.TextSize = 16
+    powerBtn.ZIndex = 3
+    Instance.new("UICorner", powerBtn).CornerRadius = UDim.new(0, 5)
+    
+    local closeBtn = Instance.new("TextButton", bar)
+    closeBtn.Size = UDim2.new(0, 24, 0, 24)
+    closeBtn.Position = UDim2.new(1, -30, 0.5, -12)
+    closeBtn.Text = "✕"
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 45, 45)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 13
+    closeBtn.ZIndex = 3
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
+    closeBtn.MouseButton1Click:Connect(function() isActive = false; removeAllHats(); screenGui:Destroy() end)
+    
+    local scrollFrame = Instance.new("ScrollingFrame", main)
+    scrollFrame.Position = UDim2.new(0, 0, 0, 34)
+    scrollFrame.Size = UDim2.new(1, 0, 1, -34)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.BorderSizePixel = 0
+    scrollFrame.ScrollBarThickness = 4
+    scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 110)
+    scrollFrame.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+    scrollFrame.ZIndex = 2
+    Instance.new("UICorner", scrollFrame).CornerRadius = UDim.new(0, 6)
+    
+    local content = Instance.new("Frame", scrollFrame)
+    content.Size = UDim2.new(1, -8, 0, 0)
+    content.BackgroundTransparency = 1
+    content.ZIndex = 2
+    
+    local y = 10
+    local PAD = 12
+    
+    local function addModeRow(label, modes, getCur, onSel)
+        local l = Instance.new("TextLabel", content)
+        l.Size = UDim2.new(1, -PAD*2, 0, 14)
+        l.Position = UDim2.new(0, PAD, 0, y)
+        l.BackgroundTransparency = 1
+        l.Text = label
+        l.TextColor3 = Color3.fromRGB(190,190,200)
+        l.Font = Enum.Font.GothamMedium
+        l.TextSize = 11
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        y = y + 16
+        local r = Instance.new("Frame", content)
+        r.Size = UDim2.new(1, -PAD*2, 0, 32)
+        r.Position = UDim2.new(0, PAD, 0, y)
+        r.BackgroundTransparency = 1
+        local btns = {}
+        local function rf() for k,b in pairs(btns) do b.BackgroundColor3 = (k==getCur()) and Color3.fromRGB(70,130,240) or Color3.fromRGB(40,40,48) end end
+        local tg = (#modes-1)*4
+        local bw = ((280-PAD*2)-tg)/#modes
+        for i,m in ipairs(modes) do
+            local b = Instance.new("TextButton", r)
+            b.Size = UDim2.new(0, bw, 1, 0)
+            b.Position = UDim2.new(0, (i-1)*(bw+4), 0, 0)
+            b.Text = m.text
+            b.Font = Enum.Font.GothamBold
+            b.TextSize = 9
+            b.TextColor3 = Color3.new(1,1,1)
+            b.BackgroundColor3 = Color3.fromRGB(40,40,48)
+            b.ZIndex = 3
+            Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+            btns[m.key] = b
+            b.MouseButton1Click:Connect(function() onSel(m.key); rf() end)
+        end
+        rf()
+        y = y + 40
+    end
+    
+    local function addSlider(label, minV, maxV, def, step, onCh)
+        local r = Instance.new("Frame", content)
+        r.Size = UDim2.new(1, -PAD*2, 0, 38)
+        r.Position = UDim2.new(0, PAD, 0, y)
+        r.BackgroundTransparency = 1
+        local l = Instance.new("TextLabel", r)
+        l.Size = UDim2.new(1, -44, 0, 16)
+        l.BackgroundTransparency = 1
+        l.Text = label
+        l.TextColor3 = Color3.fromRGB(190,190,200)
+        l.Font = Enum.Font.GothamMedium
+        l.TextSize = 11
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        local vl = Instance.new("TextLabel", r)
+        vl.Size = UDim2.new(0, 44, 0, 16)
+        vl.Position = UDim2.new(1, -44, 0, 0)
+        vl.BackgroundTransparency = 1
+        vl.Text = tostring(def)
+        vl.TextColor3 = Color3.fromRGB(140,200,255)
+        vl.Font = Enum.Font.Code
+        vl.TextSize = 11
+        vl.TextXAlignment = Enum.TextXAlignment.Right
+        local b = Instance.new("TextBox", r)
+        b.Size = UDim2.new(1, -44, 0, 20)
+        b.Position = UDim2.new(0, 0, 0, 16)
+        b.BackgroundColor3 = Color3.fromRGB(40,40,48)
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = Enum.Font.Code
+        b.TextSize = 12
+        b.Text = tostring(def)
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+        local mn = Instance.new("TextButton", r)
+        mn.Size = UDim2.new(0, 18, 0, 18)
+        mn.Position = UDim2.new(1, -44, 0, 18)
+        mn.Text = "−"
+        mn.BackgroundColor3 = Color3.fromRGB(55,55,65)
+        mn.TextColor3 = Color3.new(1,1,1)
+        mn.Font = Enum.Font.GothamBold
+        mn.TextSize = 12
+        mn.ZIndex = 5
+        Instance.new("UICorner", mn).CornerRadius = UDim.new(0,4)
+        local pl = Instance.new("TextButton", r)
+        pl.Size = UDim2.new(0, 18, 0, 18)
+        pl.Position = UDim2.new(1, -22, 0, 18)
+        pl.Text = "+"
+        pl.BackgroundColor3 = Color3.fromRGB(55,55,65)
+        pl.TextColor3 = Color3.new(1,1,1)
+        pl.Font = Enum.Font.GothamBold
+        pl.TextSize = 12
+        pl.ZIndex = 5
+        Instance.new("UICorner", pl).CornerRadius = UDim.new(0,4)
+        local function ap(v)
+            v = math.clamp(tonumber(v) or def, minV, maxV)
+            local rd = math.floor(v*100+0.5)/100
+            b.Text = tostring(rd)
+            vl.Text = tostring(rd)
+            onCh(rd)
+        end
+        mn.MouseButton1Click:Connect(function() ap((tonumber(b.Text) or def)-step) end)
+        pl.MouseButton1Click:Connect(function() ap((tonumber(b.Text) or def)+step) end)
+        b.FocusLost:Connect(function() ap(b.Text) end)
+        y = y + 42
+    end
+    
+    local function addTog(label, getSt, onTog, onCl, offCl)
+        local r = Instance.new("Frame", content)
+        r.Size = UDim2.new(1, -PAD*2, 0, 30)
+        r.Position = UDim2.new(0, PAD, 0, y)
+        r.BackgroundTransparency = 1
+        local l = Instance.new("TextLabel", r)
+        l.Size = UDim2.new(0, 170, 1, 0)
+        l.BackgroundTransparency = 1
+        l.Text = label
+        l.TextColor3 = Color3.fromRGB(190,190,200)
+        l.Font = Enum.Font.GothamMedium
+        l.TextSize = 11
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        local b = Instance.new("TextButton", r)
+        b.Size = UDim2.new(0, 70, 1, 0)
+        b.Position = UDim2.new(1, -70, 0, 0)
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 11
+        b.TextColor3 = Color3.new(1,1,1)
+        b.ZIndex = 3
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+        local function rf()
+            if getSt() then b.Text = onCl.text; b.BackgroundColor3 = onCl.bg
+            else b.Text = offCl.text; b.BackgroundColor3 = offCl.bg end
+        end
+        rf()
+        b.MouseButton1Click:Connect(function() onTog(); rf() end)
+        y = y + 38
+    end
+    
+    local function addSec(txt)
+        local l = Instance.new("TextLabel", content)
+        l.Size = UDim2.new(1, -PAD*2, 0, 16)
+        l.Position = UDim2.new(0, PAD, 0, y)
+        l.BackgroundTransparency = 1
+        l.Text = txt
+        l.TextColor3 = Color3.fromRGB(130,130,150)
+        l.Font = Enum.Font.GothamBold
+        l.TextSize = 10
+        l.TextXAlignment = Enum.TextXAlignment.Center
+        y = y + 20
+    end
+    
+    local function updPwr()
+        if isActive then powerBtn.BackgroundColor3 = Color3.fromRGB(60,200,60); powerBtn.Text = "⏻"
+        else powerBtn.BackgroundColor3 = Color3.fromRGB(200,60,60); powerBtn.Text = "⏸" end
+    end
+    
+    powerBtn.MouseButton1Click:Connect(function()
+        isActive = not isActive
+        if isActive then task.spawn(function() task.wait(0.1); captureAllowedHats() end) else removeAllHats() end
+        updPwr()
+    end)
+    
+    -- ═══ GUI SECTIONS ═══
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return ORBIT_MODE end, function(k) ORBIT_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return SPIN_MODE end, function(k) SPIN_MODE=k end)
+    
+    addSec("── Display ──")
+    addSlider("🔍 GUI Scale", 0.5, 2.0, GUI_SCALE, 0.05, function(v) GUI_SCALE=v; uiScale.Scale=v end)
+    
+    addSec("── Gift Mode ──")
+    addTog("🔘 Gift Mode", function() return GIFT_ENABLED end, function() GIFT_ENABLED=not GIFT_ENABLED end, {text="🎁 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    do
+        local r = Instance.new("Frame", content)
+        r.Size = UDim2.new(1, -PAD*2, 0, 30)
+        r.Position = UDim2.new(0, PAD, 0, y)
+        r.BackgroundTransparency = 1
+        local l = Instance.new("TextLabel", r)
+        l.Size = UDim2.new(0, 90, 1, 0)
+        l.BackgroundTransparency = 1
+        l.Text = "🎯 Target"
+        l.TextColor3 = Color3.fromRGB(190,190,200)
+        l.Font = Enum.Font.GothamMedium
+        l.TextSize = 11
+        l.TextXAlignment = Enum.TextXAlignment.Left
+        local b = Instance.new("TextButton", r)
+        b.Size = UDim2.new(0, 150, 1, 0)
+        b.Position = UDim2.new(1, -150, 0, 0)
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 11
+        b.TextColor3 = Color3.new(1,1,1)
+        b.BackgroundColor3 = Color3.fromRGB(70,70,85)
+        b.ZIndex = 3
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,6)
+        local function rf() b.Text = (GIFT_TARGET_NAME=="") and "🙋 Myself (tap ▸)" or ("🎯 "..GIFT_TARGET_NAME.." (tap ▸)") end
+        rf()
+        b.MouseButton1Click:Connect(function()
+            local n = {""}
+            for _,p in ipairs(Players:GetPlayers()) do if p~=plr then table.insert(n,p.Name) end end
+            local ci = 1
+            for i,v in ipairs(n) do if v==GIFT_TARGET_NAME then ci=i break end end
+            GIFT_TARGET_NAME = n[(ci%#n)+1]
+            rf()
+        end)
+        y = y + 38
+    end
+    
+    -- OUTER RING 1
+    addSec("── Outer Ring 1 ──")
+    addSlider("📏 Distance", -10000,10000, DISTANCE, 0.5, function(v) DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, ORBIT_RADIUS, 0.5, function(v) ORBIT_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, ORBIT_SPEED, 5, function(v) ORBIT_SPEED=v end)
+    addSlider("↕️ Height", -10000,10000, HEIGHT_OFFSET, 0.5, function(v) HEIGHT_OFFSET=v end)
+    addSlider("💫 Spin", -10000,10000, SPIN_SPEED, 0.5, function(v) SPIN_SPEED=v end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return ORBIT_MODE end, function(k) ORBIT_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return SPIN_MODE end, function(k) SPIN_MODE=k end)
+    addTog("🔀 Split", function() return USE_SPLIT end, function() USE_SPLIT=not USE_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("📊 Split Ratio", 0.1,0.9, SPLIT_RATIO, 0.05, function(v) SPLIT_RATIO=v end)
+    addTog("☀️ Shoot Out", function() return USE_SHOOT_OUT end, function() USE_SHOOT_OUT=not USE_SHOOT_OUT end, {text="☀️ ON",bg=Color3.fromRGB(255,200,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("☀️ Range", -10000,10000, SHOOT_OUT_RANGE, 0.5, function(v) SHOOT_OUT_RANGE=v end)
+    addSlider("🚀 Pulse Speed", -10000,10000, SHOOT_OUT_SPEED, 10, function(v) SHOOT_OUT_SPEED=v end)
+    addSlider("🌀 Orbit Speed", -10000,10000, SHOOT_OUT_ORBIT_SPEED, 10, function(v) SHOOT_OUT_ORBIT_SPEED=v end)
+    addTog("🌍 Orbit While Shoot", function() return USE_SHOOT_OUT_ORBIT end, function() USE_SHOOT_OUT_ORBIT=not USE_SHOOT_OUT_ORBIT end, {text="🌍 ON",bg=Color3.fromRGB(0,150,100)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- OUTER RING 2 (with Spin Axis + Wing)
+    addSec("── Outer Ring 2 ──")
+    addTog("🔘 Outer Ring 2", function() return USE_OUTER2 end, function() USE_OUTER2=not USE_OUTER2 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👤 Count", 1,16, OUTER2_COUNT, 1, function(v) OUTER2_COUNT=math.floor(v) end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return OUTER2_MODE end, function(k) OUTER2_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return OUTER2_SPIN_MODE end, function(k) OUTER2_SPIN_MODE=k end)
+    addSlider("📏 Distance", -10000,10000, OUTER2_DISTANCE, 0.5, function(v) OUTER2_DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, OUTER2_RADIUS, 0.5, function(v) OUTER2_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, OUTER2_SPEED, 5, function(v) OUTER2_SPEED=v end)
+    addSlider("↕️ Height", -10000,10000, OUTER2_HEIGHT, 0.5, function(v) OUTER2_HEIGHT=v end)
+    addSlider("💫 Spin", -180,180, OUTER2_SPIN, 1, function(v) OUTER2_SPIN=v end)
+    addTog("🔀 Split", function() return USE_OUTER2_SPLIT end, function() USE_OUTER2_SPLIT=not USE_OUTER2_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("📊 Split Ratio", 0.1,0.9, OUTER2_SPLIT_RATIO, 0.05, function(v) OUTER2_SPLIT_RATIO=v end)
+    
+    -- WING MODE
+    addSec("── 🕊️ Wing Mode ──")
+    addTog("🔘 Wing Mode", function() return USE_WING end, function() USE_WING=not USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSec("  Spin Axis - Magnet Looks: " .. ({X="X-Axis", Y="Y-Axis", Z="Z-Axis"})[OUTER2_SPIN_MODE] or "Y-Axis")
+    addSlider("Spin", -180,180, OUTER2_SPIN, 1, function(v) OUTER2_SPIN=v end)
+    addSec("  Y-Axis Limits")
+    addSlider("Min Y-Axis", -180,180, WING_MIN_Y, 1, function(v) WING_MIN_Y=math.floor(v) end)
+    addSlider("Max Y-Axis", -180,180, WING_MAX_Y, 1, function(v) WING_MAX_Y=math.floor(v) end)
+    addSec("  X-Axis Limits")
+    addSlider("Min X-Axis", -180,180, WING_MIN_X, 1, function(v) WING_MIN_X=math.floor(v) end)
+    addSlider("Max X-Axis", -180,180, WING_MAX_X, 1, function(v) WING_MAX_X=math.floor(v) end)
+    addSec("  Z-Axis Limits")
+    addSlider("Min Z-Axis", -180,180, WING_MIN_Z, 1, function(v) WING_MIN_Z=math.floor(v) end)
+    addSlider("Max Z-Axis", -180,180, WING_MAX_Z, 1, function(v) WING_MAX_Z=math.floor(v) end)
+    addSlider("Wing Speed", 1,180, WING_SPEED_X, 1, function(v) WING_SPEED_X=v end)
+    addTog("🧲 Y-Axis Magnet (Look At Me)", function() return WING_Y_MAGNET_ENABLED end, function() WING_Y_MAGNET_ENABLED=not WING_Y_MAGNET_ENABLED end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- OUTER RING 3
+    addSec("── Outer Ring 3 ──")
+    addTog("🔘 Outer Ring 3", function() return USE_OUTER3 end, function() USE_OUTER3=not USE_OUTER3 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👤 Count", 1,16, OUTER3_COUNT, 1, function(v) OUTER3_COUNT=math.floor(v) end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return OUTER3_MODE end, function(k) OUTER3_MODE=k end)
+    addSlider("📏 Distance", -10000,10000, OUTER3_DISTANCE, 0.5, function(v) OUTER3_DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, OUTER3_RADIUS, 0.5, function(v) OUTER3_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, OUTER3_SPEED, 5, function(v) OUTER3_SPEED=v end)
+    addSlider("↕️ Height", -10000,10000, OUTER3_HEIGHT, 0.5, function(v) OUTER3_HEIGHT=v end)
+    addSlider("💫 Spin", -10000,10000, OUTER3_SPIN, 0.5, function(v) OUTER3_SPIN=v end)
+    addTog("🔀 Split", function() return USE_OUTER3_SPLIT end, function() USE_OUTER3_SPLIT=not USE_OUTER3_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("📊 Split Ratio", 0.1,0.9, OUTER3_SPLIT_RATIO, 0.05, function(v) OUTER3_SPLIT_RATIO=v end)
+    
+    -- OUTER RING 4
+    addSec("── Outer Ring 4 ──")
+    addTog("🔘 Outer Ring 4", function() return USE_OUTER4 end, function() USE_OUTER4=not USE_OUTER4 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👤 Count", 1,16, OUTER4_COUNT, 1, function(v) OUTER4_COUNT=math.floor(v) end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return OUTER4_MODE end, function(k) OUTER4_MODE=k end)
+    addSlider("📏 Distance", -10000,10000, OUTER4_DISTANCE, 0.5, function(v) OUTER4_DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, OUTER4_RADIUS, 0.5, function(v) OUTER4_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, OUTER4_SPEED, 5, function(v) OUTER4_SPEED=v end)
+    addSlider("↕️ Height", -10000,10000, OUTER4_HEIGHT, 0.5, function(v) OUTER4_HEIGHT=v end)
+    addSlider("💫 Spin", -10000,10000, OUTER4_SPIN, 0.5, function(v) OUTER4_SPIN=v end)
+    addTog("🔀 Split", function() return USE_OUTER4_SPLIT end, function() USE_OUTER4_SPLIT=not USE_OUTER4_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("📊 Split Ratio", 0.1,0.9, OUTER4_SPLIT_RATIO, 0.05, function(v) OUTER4_SPLIT_RATIO=v end)
+    
+    -- INNER RING
+    addSec("── Inner Ring ──")
+    addTog("🔘 Inner Ring", function() return USE_INNER_RING end, function() USE_INNER_RING=not USE_INNER_RING end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👤 Count", 1,12, INNER_COUNT, 1, function(v) INNER_COUNT=math.floor(v) end)
+    addModeRow("⚡ Mode", {{key="Ring",text="💍 Ring"},{key="Lazer",text="🔴 Lazer"},{key="DoubleLazer",text="🔴🔴 Double"},{key="Fireball",text="🔥 Fireball"},{key="DoubleStar",text="🌌 Dual"}}, function() return INNER_MODE end, function(k) INNER_MODE=k end)
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return INNER_ORBIT_MODE end, function(k) INNER_ORBIT_MODE=k end)
+    addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return SPIN_MODE end, function(k) SPIN_MODE=k end)
+    
+    addSec("── Inner Props ──")
+    addSlider("📏 Distance", -10000,10000, INNER_DISTANCE, 0.5, function(v) INNER_DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, INNER_ORBIT_RADIUS, 0.5, function(v) INNER_ORBIT_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, INNER_ORBIT_SPEED, 5, function(v) INNER_ORBIT_SPEED=v end)
+    addSlider("↕︁ Height", -10000,10000, INNER_HEIGHT_OFFSET, 0.5, function(v) INNER_HEIGHT_OFFSET=v end)
+    addSlider("💫 Spin", -10000,10000, INNER_SPIN_SPEED, 0.5, function(v) INNER_SPIN_SPEED=v end)
+    
+    addSec("── Double Lazer Props ──")
+    addSlider("📏 Distance", -10000,10000, INNER_LAZER_DISTANCE, 0.5, function(v) INNER_LAZER_DISTANCE=v end)
+    addSlider("↕︁ Height", -10000,10000, INNER_LAZER_HEIGHT, 0.5, function(v) INNER_LAZER_HEIGHT=v end)
+    addSlider("📐 Range", -10000,10000, INNER_LAZER_RANGE, 0.5, function(v) INNER_LAZER_RANGE=v end)
+    addSlider("🚀 Shoot Speed", -10000,10000, INNER_LAZER_SPEED, 10, function(v) INNER_LAZER_SPEED=v end)
+    addSlider("🌀 Orbit Speed", -10000,10000, INNER_LAZER_ORBIT_SPEED, 10, function(v) INNER_LAZER_ORBIT_SPEED=v end)
+    addSlider("⭕ Beam Radius", -1000,1000, INNER_LAZER_RADIUS, 0.2, function(v) INNER_LAZER_RADIUS=v end)
+    addSlider("↔️ Beam Gap", -1000,1000, INNER_BEAM_GAP, 0.2, function(v) INNER_BEAM_GAP=v end)
+    
+    addSec("── Fireball Props ──")
+    addSlider("🌀 Orbit Speed Z", -10000,10000, FB_ORBIT_SPEED, 5, function(v) FB_ORBIT_SPEED=v end)
+    addSlider("🔄 Y 360° Spin", -10000,10000, FB_Y_SPIN_SPEED, 5, function(v) FB_Y_SPIN_SPEED=v end)
+    addSlider("📏 Distance", -10000,10000, FB_DISTANCE, 0.5, function(v) FB_DISTANCE=v end)
+    addSlider("↕︁ Height", -10000,10000, FB_HEIGHT, 0.5, function(v) FB_HEIGHT=v end)
+    addSlider("⭕ Sphere Size", -10000,10000, FB_SIZE, 0.5, function(v) FB_SIZE=v end)
+    addSlider("📐 Range", -10000,10000, FB_RANGE, 0.5, function(v) FB_RANGE=v end)
+    addSlider("🚀 Pulse Speed", -10000,10000, FB_SHOOT_SPEED, 10, function(v) FB_SHOOT_SPEED=v end)
+    
+    addSec("── Double Star Props ──")
+    addSlider("🌀 Orbit Speed Z", -10000,10000, DS_ORBIT_SPEED, 5, function(v) DS_ORBIT_SPEED=v end)
+    addSlider("🔄 Y 360° Spin", -10000,10000, DS_Y_SPIN_SPEED, 5, function(v) DS_Y_SPIN_SPEED=v end)
+    addSlider("📏 Distance", -10000,10000, DS_DISTANCE, 0.5, function(v) DS_DISTANCE=v end)
+    addSlider("↕︁ Height", -10000,10000, DS_HEIGHT, 0.5, function(v) DS_HEIGHT=v end)
+    addSlider("⭕ Sphere Size", -10000,10000, DS_SIZE, 0.5, function(v) DS_SIZE=v end)
+    addSlider("🌌 Centre Orbit Speed", -10000,10000, DS_CENTER_SPEED, 5, function(v) DS_CENTER_SPEED=v end)
+    addSlider("🪐 Centre Orbit Size", -10000,10000, DS_CENTER_RADIUS, 0.5, function(v) DS_CENTER_RADIUS=v end)
+    
+    -- HOLD MODES
+    addSec("── Shield ──")
+    addTog("🔘 Shield", function() return USE_SHIELD end, function() setShieldEnabled(not USE_SHIELD) end, {text="🛡️ ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👈 Left Hat", 1,21, SHIELD_LEFT_INDEX, 1, function(v) SHIELD_LEFT_INDEX=math.floor(v) end)
+    addSlider("👉 Right Hat", 1,21, SHIELD_RIGHT_INDEX, 1, function(v) SHIELD_RIGHT_INDEX=math.floor(v) end)
+    addSlider("📏 Distance", -10000,10000, SHIELD_DISTANCE, 0.5, function(v) SHIELD_DISTANCE=v end)
+    addSlider("⭕ Radius", -10000,10000, SHIELD_RADIUS, 0.5, function(v) SHIELD_RADIUS=v end)
+    addSlider("🌀 Speed", -10000,10000, SHIELD_SPEED, 5, function(v) SHIELD_SPEED=v end)
+    addSlider("↕︁ Height", -10000,10000, SHIELD_HEIGHT, 0.5, function(v) SHIELD_HEIGHT=v end)
+    
+    addSec("── Double Lazer HOLD ──")
+    addTog("🔘 Double Lazer", function() return USE_DLAZER_HOLD end, function() setDLazerHoldEnabled(not USE_DLAZER_HOLD) end, {text="⚡ ON",bg=Color3.fromRGB(255,100,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👈 Left Hat", 1,21, DLAZER_LEFT_INDEX, 1, function(v) DLAZER_LEFT_INDEX=math.floor(v) end)
+    addSlider("👉 Right Hat", 1,21, DLAZER_RIGHT_INDEX, 1, function(v) DLAZER_RIGHT_INDEX=math.floor(v) end)
+    addSlider("📏 Distance", -10000,10000, DLAZER_DISTANCE, 0.5, function(v) DLAZER_DISTANCE=v end)
+    addSlider("↕︁ Height", -10000,10000, DLAZER_HEIGHT, 0.5, function(v) DLAZER_HEIGHT=v end)
+    addSlider("📐 Range", -10000,10000, DLAZER_RANGE, 0.5, function(v) DLAZER_RANGE=v end)
+    addSlider("🚀 Shoot Speed", -10000,10000, DLAZER_SHOOT_SPEED, 10, function(v) DLAZER_SHOOT_SPEED=v end)
+    addSlider("⭕ Beam Radius", -1000,1000, DLAZER_BEAM_RADIUS, 0.2, function(v) DLAZER_BEAM_RADIUS=v end)
+    addSlider("🌀 Orbit Speed", -10000,10000, DLAZER_ORBIT_SPEED, 10, function(v) DLAZER_ORBIT_SPEED=v end)
+    addSlider("◀︁ Left Offset", -10000,10000, DLAZER_LEFT_OFFSET, 0.1, function(v) DLAZER_LEFT_OFFSET=v end)
+    addSlider("▶︁ Right Offset", -10000,10000, DLAZER_RIGHT_OFFSET, 0.1, function(v) DLAZER_RIGHT_OFFSET=v end)
+    addSlider("🔄 Rot X", -180,180, DLAZER_ROT_X, 5, function(v) DLAZER_ROT_X=v end)
+    addSlider("🔄 Rot Y", -180,180, DLAZER_ROT_Y, 5, function(v) DLAZER_ROT_Y=v end)
+    addSlider("🔄 Rot Z", -180,180, DLAZER_ROT_Z, 5, function(v) DLAZER_ROT_Z=v end)
+    
+    addSec("── Fireball HOLD ──")
+    addTog("🔘 Fireball HOLD", function() return USE_FIREBALL_HOLD end, function() setFireballHoldEnabled(not USE_FIREBALL_HOLD) end, {text="🔥 ON",bg=Color3.fromRGB(255,120,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    addSlider("👈 Left Hat", 1,21, FIREBALL_LEFT_INDEX, 1, function(v) FIREBALL_LEFT_INDEX=math.floor(v) end)
+    addSlider("👉 Right Hat", 1,21, FIREBALL_RIGHT_INDEX, 1, function(v) FIREBALL_RIGHT_INDEX=math.floor(v) end)
+    addSlider("📏 Distance", -10000,10000, FIREBALL_DISTANCE, 0.5, function(v) FIREBALL_DISTANCE=v end)
+    addSlider("↕︁ Height", -10000,10000, FIREBALL_HEIGHT, 0.5, function(v) FIREBALL_HEIGHT=v end)
+    addSlider("⭕ Sphere Size", -10000,10000, FIREBALL_SPHERE_SIZE, 0.5, function(v) FIREBALL_SPHERE_SIZE=v end)
+    addSlider("📐 Range", -10000,10000, FIREBALL_RANGE, 0.5, function(v) FIREBALL_RANGE=v end)
+    addSlider("🚀 Pulse Speed", -10000,10000, FIREBALL_SHOOT_SPEED, 10, function(v) FIREBALL_SHOOT_SPEED=v end)
+    addSlider("🌀 Orbit Speed Z", -10000,10000, FIREBALL_ORBIT_SPEED, 5, function(v) FIREBALL_ORBIT_SPEED=v end)
+    addSlider("🔄 Y 360° Spin", -10000,10000, FIREBALL_Y_SPIN_SPEED, 5, function(v) FIREBALL_Y_SPIN_SPEED=v end)
+    addSlider("◀︁ Left Offset", -10000,10000, FIREBALL_LEFT_OFFSET, 0.1, function(v) FIREBALL_LEFT_OFFSET=v end)
+    addSlider("▶︁ Right Offset", -10000,10000, FIREBALL_RIGHT_OFFSET, 0.1, function(v) FIREBALL_RIGHT_OFFSET=v end)
+    addSlider("🔄 Rot X", -180,180, FIREBALL_ROT_X, 5, function(v) FIREBALL_ROT_X=v end)
+    addSlider("🔄 Rot Y", -180,180, FIREBALL_ROT_Y, 5, function(v) FIREBALL_ROT_Y=v end)
+    addSlider("🔄 Rot Z", -180,180, FIREBALL_ROT_Z, 5, function(v) FIREBALL_ROT_Z=v end)
+    
+    -- 10 HOLD SLOTS
+    addSec("── Hold Slots ──")
+    local holdNames = {"Hold Mode","Hold Control 1","Hold Control 2","Hold Control 3","Hold Control 4","Hold Control 5","Hold Control 6","Hold Control 7","Hold Control 8","Hold Control 9"}
+    for i = 1, 10 do
+        local slot = HOLD_SLOTS[i]
+        addSec("── "..holdNames[i].." (Slot "..i..") ──")
+        addTog("🔘 "..holdNames[i], function() return slot.USE end, function() setHoldSlotEnabled(i,not slot.USE) end, {text="✋ ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+        addSlider("👈 Left Hat", 1,21, slot.LIDX, 1, function(v) slot.LIDX=math.floor(v) end)
+        addSlider("👉 Right Hat", 1,21, slot.RIDX, 1, function(v) slot.RIDX=math.floor(v) end)
+        addSlider("📏 Distance", -10000,10000, slot.DIST, 0.5, function(v) slot.DIST=v end)
+        addSlider("↕︁ Height", -10000,10000, slot.HGT, 0.5, function(v) slot.HGT=v end)
+        addSlider("◀︁ Left Offset", -10000,10000, slot.LOFF, 0.1, function(v) slot.LOFF=v end)
+        addSlider("▶︁ Right Offset", -10000,10000, slot.ROFF, 0.1, function(v) slot.ROFF=v end)
+        addSlider("🔄 Rot X", -180,180, slot.RX, 5, function(v) slot.RX=v end)
+        addSlider("🔄 Rot Y", -180,180, slot.RY, 5, function(v) slot.RY=v end)
+        addSlider("🔄 Rot Z", -180,180, slot.RZ, 5, function(v) slot.RZ=v end)
+    end
+    
+    -- GENERAL
+    addSec("── General ──")
+    addSlider("📊 Max Hats", 1,30, MAX_HATS, 1, function(v) MAX_HATS=math.floor(v) end)
+    addSlider("🌊 Smoothness", 0.1,20, SMOOTHNESS, 0.1, function(v) SMOOTHNESS=v end)
+    addTog("🧲 Magnet", function() return MAGNET_ENABLED end, function() MAGNET_ENABLED=not MAGNET_ENABLED; setMagnetEnabled(MAGNET_ENABLED) end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⛔ OFF",bg=Color3.fromRGB(180,55,55)})
+    
+    local function mkBtn(txt, bg, cb)
+        local b = Instance.new("TextButton", content)
+        b.Size = UDim2.new(1, -PAD*2, 0, 34)
+        b.Position = UDim2.new(0, PAD, 0, y)
+        b.Text = txt
+        b.BackgroundColor3 = bg
+        b.TextColor3 = Color3.new(1,1,1)
+        b.Font = Enum.Font.GothamBold
+        b.TextSize = 12
+        b.ZIndex = 3
+        Instance.new("UICorner", b).CornerRadius = UDim.new(0,7)
+        b.MouseButton1Click:Connect(cb)
+        y = y + 38
+        return b
+    end
+    
+    local capBtn = mkBtn("🎩 Capture All Hats", Color3.fromRGB(70,130,240), function()
+        captureAllowedHats()
+        capBtn.BackgroundColor3 = Color3.fromRGB(50,190,70)
+        capBtn.Text = "✅ Captured!"
+        task.delay(0.8, function()
+            if capBtn and capBtn.Parent then
+                capBtn.BackgroundColor3 = Color3.fromRGB(70,130,240)
+                capBtn.Text = "🎩 Capture All Hats"
+            end
+        end)
+    end)
+    mkBtn("🗑️ Remove All", Color3.fromRGB(200,55,55), function()
+        removeAllHats()
+        if capBtn and capBtn.Parent then capBtn.Text = "🎩 Capture All Hats" end
+    end)
+    mkBtn("👁️ Toggle GUI [RightShift]", Color3.fromRGB(55,55,65), function()
+        main.Visible = not main.Visible
+    end)
+    
+    content.Size = UDim2.new(1, -8, 0, y + 10)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, y + 10)
+    
+    UserInputService.InputBegan:Connect(function(i, g)
+        if not g and i.KeyCode == Enum.KeyCode.RightShift then
+            main.Visible = not main.Visible
+        end
+    end)
+    
+    print("✅ GUI Created")
+end
+
+-- ════════════════════════════════════════════════════════
+-- INIT
+-- ════════════════════════════════════════════════════════
+task.spawn(function()
+    task.wait(1)
+    captureAllowedHats()
+end)
+
+print("🔥 Hat Orbit v9.9.9 Ready — RightShift to toggle GUI")
