@@ -11,9 +11,6 @@ local function getPlayer()
         Core._player = getPlayers().LocalPlayer
         while not Core._player do task.wait();The magnet logic was overcomplicated. Here's the **simplified fix** with **one Y-axis magnet** that makes hats **LOOK AT YOU** like spin axis magnet:
 
-## ✅ **Fixed `core.lua` - One Y-Axis Magnet**
-
-```lua
 -- core.lua (SIMPLIFIED - ONE Y-AXIS MAGNET)
 local Core = {}
 
