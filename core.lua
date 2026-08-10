@@ -643,12 +643,9 @@ function Core.updateWingMode(dt)
     updateAxis("Z")
 end
 
--- core.lua (STRONG MAGNET FIX)
--- ... (keep all settings and helpers the same until RENDER LOOP)
-
--- ════════════════════════════════════════════════════════
--- RENDER LOOP (FIXED MAGNET)
--- ════════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════════
+-- RENDER LOOP
+-- ══════════════════════════════════════════════════════════
 function Core.startRenderLoop()
     local TWO_PI = math.pi * 2
     local V3_ZERO = Vector3.zero
@@ -678,7 +675,7 @@ function Core.startRenderLoop()
             Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
             Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI
             Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
-            Core.updateWingMode(dt)
+            Core.updateWingMode(dt)  -- Combined spin + wing
         end
         if Core.USE_OUTER3 then Core.outer3OrbitAngle=(Core.outer3OrbitAngle+math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI; Core.outer3SpinAngle=(Core.outer3SpinAngle+math.rad(Core.OUTER3_SPIN*60)*dt)%TWO_PI; Core.outer3SplitAngle=(Core.outer3SplitAngle-math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI end
         if Core.USE_OUTER4 then Core.outer4OrbitAngle=(Core.outer4OrbitAngle+math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI; Core.outer4SpinAngle=(Core.outer4SpinAngle+math.rad(Core.OUTER4_SPIN*60)*dt)%TWO_PI; Core.outer4SplitAngle=(Core.outer4SplitAngle-math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI end
@@ -740,86 +737,64 @@ function Core.startRenderLoop()
             end
             
             Core.orbitParts[i].Position = Core.orbitParts[i].Position:Lerp(tp, alpha)
-            
-            -- ══════════════════════════════════════════════════
-            -- STRONG MAGNET SYSTEM (Like Spin Axis)
-            -- ══════════════════════════════════════════════════
-            local d = Core.orbitData[h]
-            if d and d.alignOrient then
-                local shouldUseMagnet = Core.MAGNET_ENABLED
-                local targetPos = a.Position
-                local lookAtTarget = targetPos
-                
-                -- Determine magnet behavior
-                local useMagnet = false
-                local magnetMode = "none"
-                local rx, ry, rz = 0, 0, 0
+            if not (isO2 and Core.USE_WING) then
+                -- Per-ring spin mode
+                local spinMode = Core.SPIN_MODE
+                local spinVec = (Core.SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
                 local spinAngle = Core.outerSpinAngle
                 
-                if isIn then
-                    spinAngle = Core.innerSpinAngle
-                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; rx,ry,rz = 0,0,0; if Core.SPIN_MODE=="Y" then ry=Core.innerSpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.innerSpinAngle else rz=Core.innerSpinAngle end
-                    end
-                elseif isO2 then
+                if isO2 then
+                    spinMode = Core.OUTER2_SPIN_MODE
+                    spinVec = (Core.OUTER2_SPIN_MODE=="X") and Vector3.new(10,0,0) or (Core.OUTER2_SPIN_MODE=="Y") and Vector3.new(0,10,0) or Vector3.new(0,0,10)
                     spinAngle = Core.outer2SpinAngle
-                    if Core.MAGNET_ENABLED then
-                        if Core.USE_WING then
-                            -- Wing mode: check per-axis settings
-                            if Core.WING_MAGNET_ENABLED or Core.WING_Y_MAGNET_ENABLED or Core.WING_X_MAGNET_ENABLED or Core.WING_Z_MAGNET_ENABLED then
-                                useMagnet = true
-                                magnetMode = "wing"
-                                -- Y-axis always ON for look-at (forced)
-                                local rx_w, ry_w, rz_w = 0, 0, 0
-                                if Core.WING_Y_MAGNET_ENABLED then ry_w = Core.wingAngleY end
-                                if Core.WING_X_MAGNET_ENABLED then rx_w = Core.wingAngleX end
-                                if Core.WING_Z_MAGNET_ENABLED then rz_w = Core.wingAngleZ end
-                                rx, ry, rz = rx_w, ry_w, rz_w
-                            end
-                        else
-                            useMagnet = true; magnetMode = "spin"
-                            if Core.OUTER2_SPIN_MODE=="Y" then ry=Core.outer2SpinAngle elseif Core.OUTER2_SPIN_MODE=="X" then rx=Core.outer2SpinAngle else rz=Core.outer2SpinAngle end
-                        end
-                    end
                 elseif isO3 then
                     spinAngle = Core.outer3SpinAngle
-                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outer3SpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outer3SpinAngle else rz=Core.outer3SpinAngle end
-                    end
                 elseif isO4 then
                     spinAngle = Core.outer4SpinAngle
-                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outer4SpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outer4SpinAngle else rz=Core.outer4SpinAngle end
-                    end
                 else
-                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outerSpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outerSpinAngle else rz=Core.outerSpinAngle end
-                    end
+                    spinAngle = Core.outerSpinAngle
                 end
                 
-                -- Apply magnet
-                if useMagnet and d.alignOrient then
-                    d.alignOrient.Enabled = true
-                    d.alignOrient.MaxTorque = math.huge
-                    d.alignOrient.MaxAngularVelocity = math.huge
-                    d.alignOrient.Responsiveness = 200  -- MAX STRENGTH
-                    
-                    -- Create look-at CFrame
-                    local lookCFrame = CFrame.lookAt(op.Position, a.Position)
-                    
-                    -- Apply spin/wing rotation on top
-                    local spinRot = CFrame.Angles(rx, ry, rz)
-                    local targetCFrame = lookCFrame * CFrame.Angles(rx, ry, rz)
-                    
-                    d.alignOrient.Attachment0 = d.alignOrient.Attachment0
-                    d.alignOrient.Attachment1 = d.alignOrient.Attachment1
-                    
-                    -- Set target CFrame directly for instant magnet
-                    d.alignOrient.CFrame = targetCFrame
-                else
-                    d.alignOrient.Enabled = false
+                -- ═══ MAGNET LOGIC WITH PER-AXIS CONTROL ═══
+                local shouldMagnet = Core.MAGNET_ENABLED
+                local wingMagnet = Core.WING_MAGNET_ENABLED and Core.USE_WING
+                local yMagnet = Core.WING_Y_MAGNET_ENABLED
+                local xMagnet = Core.WING_X_MAGNET_ENABLED
+                local zMagnet = Core.WING_Z_MAGNET_ENABLED
+                
+                if Core.MAGNET_ENABLED and (isO2 and Core.USE_WING) then
+                    -- Wing mode: use per-axis magnet settings
+                    shouldMagnet = Core.WING_MAGNET_ENABLED
+                    -- Force Y-axis magnet for look-at
+                    yMagnet = true
                 end
-            end
-            
-            -- Fallback for non-magnet
-            if not d.alignOrient.Enabled and d.angularVel then
-                d.angularVel.AngularVelocity = V3_ZERO
+                
+                if shouldMagnet then
+                    local lk = CF_LOOKAT(tp, a.Position)
+                    local sa = spinAngle
+                    local sc = CF_ID
+                    
+                    -- Build rotation with per-axis magnet control
+                    local rx, ry, rz = 0, 0, 0
+                    if isO2 and Core.USE_WING then
+                        -- Wing mode: use per-axis magnet
+                        if Core.WING_Y_MAGNET_ENABLED then ry = sa else ry = 0 end
+                        if Core.WING_X_MAGNET_ENABLED then rx = sa else rx = 0 end
+                        if Core.WING_Z_MAGNET_ENABLED then rz = sa else rz = 0 end
+                    else
+                        -- Normal mode: use spin mode
+                        if spinMode == "Y" then ry = sa
+                        elseif spinMode == "X" then rx = sa
+                        elseif spinMode == "Z" then rz = sa end
+                    end
+                    
+                    sc = CF_ANGLES(rx, ry, rz)
+                    Core.orbitParts[i].CFrame = lk * sc
+                    if d.angularVel then d.angularVel.AngularVelocity = V3_ZERO end
+                else
+                    Core.orbitParts[i].CFrame = CF_NEW(tp)
+                    if d.angularVel then d.angularVel.AngularVelocity = spinVec end
+                end
             end
         end
     end)
