@@ -325,16 +325,33 @@ function GUI.Create(Core)
     addTog("🔀 Split", function() return Core.USE_OUTER2_SPLIT end, function() Core.USE_OUTER2_SPLIT=not Core.USE_OUTER2_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio", 0.1,0.9, Core.OUTER2_SPLIT_RATIO, 0.05, function(v) Core.OUTER2_SPLIT_RATIO=v end)
     
-    -- WING MODE (Exact Layout)
+      -- WING MODE (Exact Layout)
     addSec("── 🕊️ Wing Mode ──")
     addTog("🔘 Wing Mode", function() return Core.USE_WING end, function() Core.USE_WING=not Core.USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    -- Spin Axis - Magnet Looks (Shows current spin axis for magnet)
-    local spinMode = Core.OUTER2_SPIN_MODE
+    -- Spin Axis - Magnet Looks
     local magnetLabel = ({X="X-Axis", Y="Y-Axis", Z="Z-Axis"})[Core.OUTER2_SPIN_MODE] or "Y-Axis"
     addSec("  Spin Axis - Magnet Looks: " .. magnetLabel)
     
-    -- Spin slider (for wing mode)
+    -- Spin slider
+    addSlider("Spin", -180,180, Core.OUTER2_SPIN, 1, function(v) Core.OUTER2_SPIN=v end)
+    
+    -- ═══ 4 MAGNET TOGGLES ═══
+    addSec("── Magnet Controls ──")
+    
+    -- 1. Wing Mode Magnet
+    addTog("🧲 Wing Mode Magnet", function() return Core.WING_MAGNET_ENABLED end, function() Core.WING_MAGNET_ENABLED=not Core.WING_MAGNET_ENABLED end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- 2. Y-Axis Magnet (Forced ON for look-at)
+    addTog("🧲 Y-Axis Magnet (Look At)", function() return Core.WING_Y_MAGNET_ENABLED end, function() Core.WING_Y_MAGNET_ENABLED=not Core.WING_Y_MAGNET_ENABLED end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- 3. X-Axis Magnet
+    addTog("🧲 X-Axis Magnet", function() return Core.WING_X_MAGNET_ENABLED end, function() Core.WING_X_MAGNET_ENABLED=not Core.WING_X_MAGNET_ENABLED end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- 4. Z-Axis Magnet
+    addTog("🧲 Z-Axis Magnet", function() return Core.WING_Z_MAGNET_ENABLED end, function() Core.WING_Z_MAGNET_ENABLED=not Core.WING_Z_MAGNET_ENABLED end, {text="🧲 ON",bg=Color3.fromRGB(60,180,80)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
+    
+    -- Spin slider
     addSlider("Spin", -180,180, Core.OUTER2_SPIN, 1, function(v) Core.OUTER2_SPIN=v end)
     
     -- Min/Max for all axes
