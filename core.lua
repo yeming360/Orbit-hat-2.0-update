@@ -9,19 +9,6 @@ local function getUserInputService() return game:GetService("UserInputService") 
 local function getPlayer()
     if not Core._player then
         Core._player = getPlayers().LocalPlayer
-        while not Core._player do task.wait();The magnet logic was overcomplicated. Here's the **simplified fix** with **one Y-axis magnet** that makes hats **LOOK AT YOU** like spin axis magnet:
-
--- core.lua (SIMPLIFIED - ONE Y-AXIS MAGNET)
-local Core = {}
-
--- Services (lazy)
-local function getPlayers() return game:GetService("Players") end
-local function getRunService() return game:GetService("RunService") end
-local function getUserInputService() return game:GetService("UserInputService") end
-
-local function getPlayer()
-    if not Core._player then
-        Core._player = getPlayers().LocalPlayer
         while not Core._player do task.wait(); Core._player = getPlayers().LocalPlayer end
     end
     return Core._player
