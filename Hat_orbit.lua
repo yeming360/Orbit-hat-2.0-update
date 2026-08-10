@@ -1,5 +1,5 @@
---[[ Hat Orbit v9.9.9 - Clean Working Version ]]
-print("🟢 Loading Hat Orbit v9.9.9...")
+--[[ Hat Orbit v9.9.9 — Clean Single File ]]
+print("🟢 Hat Orbit v9.9.9 loading...")
 
 -- Services
 local Players = game:GetService("Players")
@@ -10,9 +10,9 @@ local plr = Players.LocalPlayer
 local chr = plr.Character
 local hrp = chr and chr:FindFirstChild("HumanoidRootPart")
 
--- ═══════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════
 -- SETTINGS
--- ═══════════════════════════════════════════════════════
+-- ══════════════════════════════════════════════════════
 local DISTANCE = 5
 local ORBIT_RADIUS = 3
 local ORBIT_SPEED = 60
@@ -166,6 +166,7 @@ local WING_MIN_X = -40; local WING_MAX_X = 40
 local WING_MIN_Y = -40; local WING_MAX_Y = 40
 local WING_MIN_Z = -40; local WING_MAX_Z = 40
 local WING_SPEED_X = 30; local WING_SPEED_Y = 30; local WING_SPEED_Z = 30
+local WING_Y_MAGNET_ENABLED = true
 
 local OUTER2_SPIN_MODE = "Y"
 
@@ -187,7 +188,7 @@ local OUTER3_SPLIT_RATIO = 0.5
 local USE_OUTER4_SPLIT = false
 local OUTER4_SPLIT_RATIO = 0.5
 
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 -- STATE
 -- ═══════════════════════════════════════════════════════
 local orbitData, orbitParts, handles, connections = {}, {}, {}, {}
@@ -209,7 +210,7 @@ local shootOutAngle = 0
 local wingAngleX, wingAngleY, wingAngleZ = 0,0,0
 local wingDirX, wingDirY, wingDirZ = 1,1,1
 
--- ═══════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 -- LAZY GETTERS
 -- ═══════════════════════════════════════════════════════
 local function getPlayer()
@@ -228,9 +229,9 @@ local function getHRP()
     return c:WaitForChild("HumanoidRootPart")
 end
 
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 -- HELPERS
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 local function waitForHRP()
     while not hrp or not hrp.Parent do
         hrp = getHRP()
@@ -314,9 +315,9 @@ local function isWearable(inst)
     return inst:IsA("Accessory") or inst:IsA("Hat")
 end
 
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 -- HOLD MODES
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 local function setShieldEnabled(enabled)
     USE_SHIELD=enabled
     if not enabled then if shieldHats.left then heldHats[shieldHats.left.handle]=nil end if shieldHats.right then heldHats[shieldHats.right.handle]=nil end shieldHats={} return end
@@ -381,9 +382,9 @@ local function setFireballHoldEnabled(enabled)
     end
 end
 
--- ═════════════════════════════════════════════════════════
--- UPDATE FUNCTIONS
 -- ════════════════════════════════════════════════════════
+-- UPDATE FUNCTIONS
+-- ═══════════════════════════════════════════════════════
 local function updateShield(dt)
     if not USE_SHIELD then return end; if not (shieldHats.left or shieldHats.right) then return end
     local a=resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
@@ -497,66 +498,56 @@ local function updateFireballHold(dt)
     else if fireballHats.right and fireballHats.right.handle then heldHats[fireballHats.right.handle]=nil end fireballHats.right={} end
 end
 
--- ═════════════════════════════════════════════════════════
--- WING MODE (COMBINED SPIN + WING)
+-- ════════════════════════════════════════════════════════
+-- WING MODE UPDATE (Simple & Clean)
 -- ════════════════════════════════════════════════════════
 local function updateWingMode(dt)
     if not USE_OUTER2 then return end
-    local spinVal = OUTER2_SPIN
-    local function updateAxis(axis)
-        local spinVal = OUTER2_SPIN
-        local minKey = "WING_MIN_"..axis
-        local maxKey = "WING_MAX_"..axis
-        local speedKey = "WING_SPEED_"..axis
+    if not USE_WING then
+        -- Just spin
+        local spinRad = math.rad(OUTER2_SPIN * 60) * dt
+        wingAngleX = wingAngleX + spinRad
+        wingAngleY = wingAngleY + spinRad
+        wingAngleZ = wingAngleZ + spinRad
+        return
+    end
+    
+    local spinRad = math.rad(OUTER2_SPIN * 60) * dt
+    for _, axis in ipairs({"X","Y","Z"}) do
         local angleKey = "wingAngle"..axis
         local dirKey = "wingDir"..axis
+        local minVal = _G["WING_MIN_"..axis]
+        local maxVal = _G["WING_MAX_"..axis]
+        local wingSpeed = _G["WING_SPEED_"..axis] or 30
         
-        local minVal = _G[minKey]
-        local maxVal = _G[maxKey]
-        local spinVal = OUTER2_SPIN
-        local wingSpeed = _G[speedKey]
+        -- Base spin always applied
+        _G[angleKey] = (_G[angleKey] or 0) + math.rad(OUTER2_SPIN * 60) * dt
         
-        -- 1. BASE SPIN (always applied if > 0)
-        if OUTER2_SPIN and OUTER2_SPIN > 0 then
-            local spinRad = math.rad(OUTER2_SPIN * 60)
-            _G[angleKey] = (_G[angleKey] or 0) + (math.rad(OUTER2_SPIN * 60) * dt)
-        end
-        
-        -- 2. WING OSCILLATION (added on top of spin)
-        if USE_WING then
-            local minVal = _G["WING_MIN_"..axis]
-            local maxVal = _G["WING_MAX_"..axis]
-            local wingSpeed = _G["WING_SPEED_"..axis]
+        -- Wing oscillation on top
+        if maxVal ~= minVal and WING_SPEED_X and WING_SPEED_X > 0 then
+            local minRad = math.rad(minVal)
+            local maxRad = math.rad(maxVal)
+            local speed = math.rad(wingSpeed)
+            local dir = _G["wingDir"..axis] or 1
             
-            if maxVal ~= minVal and wingSpeed and wingSpeed > 0 then
-                local minRad = math.rad(minVal)
-                local maxRad = math.rad(maxVal)
-                local speed = math.rad(wingSpeed)
-                local dir = _G["wingDir"..axis] or 1
-                
-                local wingOsc = (_G[angleKey] or 0) + (speed * dt * (_G[dirKey] or 1))
-                
-                if wingOsc >= math.rad(maxVal) then
-                    _G[angleKey] = math.rad(maxVal)
-                    _G["wingDir"..axis] = -1
-                elseif wingOsc <= math.rad(minVal) then
-                    _G[angleKey] = math.rad(minVal)
-                    _G["wingDir"..axis] = 1
-                else
-                    _G[angleKey] = wingOsc
-                end
+            local wingOsc = (_G[angleKey] or 0) + (speed * dt * (_G["wingDir"..axis] or 1))
+            
+            if wingOsc >= math.rad(maxVal) then
+                _G[angleKey] = math.rad(maxVal)
+                _G["wingDir"..axis] = -1
+            elseif wingOsc <= math.rad(minVal) then
+                _G[angleKey] = math.rad(minVal)
+                _G["wingDir"..axis] = 1
+            else
+                _G[angleKey] = wingOsc
             end
         end
     end
-    
-    updateAxis("X")
-    updateAxis("Y")
-    updateAxis("Z")
 end
 
--- ══════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 -- RENDER LOOP
--- ═════════════════════════════════════════════════════════
+-- ════════════════════════════════════════════════════════
 local function squarePos(progress, radius, rot)
     local sideLen = 2 * radius
     local perimeter = 8 * radius
@@ -588,35 +579,7 @@ RunService.RenderStepped:Connect(function(dt)
         outer2OrbitAngle = (outer2OrbitAngle + math.rad(OUTER2_SPEED) * dt) % (math.pi * 2)
         outer2SpinAngle = (outer2SpinAngle + math.rad(OUTER2_SPIN * 60) * dt) % (math.pi * 2)
         outer2SplitAngle = (outer2SplitAngle - math.rad(OUTER2_SPEED) * dt) % (math.pi * 2)
-        -- Wing mode update
-        if USE_WING then
-            local spinVal = OUTER2_SPIN
-            local spinRad = math.rad(OUTER2_SPIN * 60) * dt
-            for _, axis in ipairs({"X","Y","Z"}) do
-                _G["wingAngle"..axis] = (_G["wingAngle"..axis] or 0) + math.rad(OUTER2_SPIN * 60) * dt
-                if USE_WING then
-                    local minVal = _G["WING_MIN_"..axis]
-                    local maxVal = _G["WING_MAX_"..axis]
-                    local wingSpeed = _G["WING_SPEED_"..axis]
-                    if maxVal ~= minVal and WING_SPEED_X and WING_SPEED_X > 0 then
-                        local minRad = math.rad(_G["WING_MIN_"..axis])
-                        local maxRad = math.rad(_G["WING_MAX_"..axis])
-                        local speed = math.rad(_G["WING_SPEED_"..axis] or 30)
-                        local dir = _G["wingDir"..axis] or 1
-                        local wingOsc = (_G["wingAngle"..axis] or 0) + (speed * dt * (_G["wingDir"..axis] or 1))
-                        if wingOsc >= math.rad(_G["WING_MAX_"..axis]) then
-                            _G["wingAngle"..axis] = math.rad(_G["WING_MAX_"..axis])
-                            _G["wingDir"..axis] = -1
-                        elseif wingOsc <= math.rad(_G["WING_MIN_"..axis]) then
-                            _G["wingAngle"..axis] = math.rad(_G["WING_MIN_"..axis])
-                            _G["wingDir"..axis] = 1
-                        else
-                            _G["wingAngle"..axis] = wingOsc
-                        end
-                    end
-                end
-            end
-        end
+        updateWingMode(dt)
     end
     if USE_OUTER3 then outer3OrbitAngle = (outer3OrbitAngle + math.rad(OUTER3_SPEED) * dt) % (math.pi * 2); outer3SpinAngle = (outer3SpinAngle + math.rad(OUTER3_SPIN * 60) * dt) % (math.pi * 2); outer3SplitAngle = (outer3SplitAngle - math.rad(OUTER3_SPEED) * dt) % (math.pi * 2) end
     if USE_OUTER4 then outer4OrbitAngle = (outer4OrbitAngle + math.rad(OUTER4_SPEED) * dt) % (math.pi * 2); outer4SpinAngle = (outer4SpinAngle + math.rad(OUTER4_SPIN * 60) * dt) % (math.pi * 2); outer4SplitAngle = (outer4SplitAngle - math.rad(OUTER4_SPEED) * dt) % (math.pi * 2) end
@@ -624,20 +587,9 @@ RunService.RenderStepped:Connect(function(dt)
     if USE_INNER_RING then
         innerOrbitAngle = (innerOrbitAngle + math.rad(INNER_ORBIT_SPEED) * dt) % (math.pi * 2)
         innerSpinAngle = (innerSpinAngle + math.rad(INNER_SPIN_SPEED * 60) * dt) % (math.pi * 2)
-        if INNER_MODE == "Lazer" or INNER_MODE == "DoubleLazer" then
-            innerLazerAngle = (innerLazerAngle + math.rad(INNER_LAZER_SPEED) * dt) % (math.pi * 2)
-            lazerOrbitAngle = (lazerOrbitAngle + math.rad(INNER_LAZER_ORBIT_SPEED) * dt) % (math.pi * 2)
-        end
-        if INNER_MODE == "Fireball" then
-            fireballZAngle = (fireballZAngle + math.rad(FB_ORBIT_SPEED) * dt) % (math.pi * 2)
-            fireballYAngle = (fireballYAngle + math.rad(FB_Y_SPIN_SPEED) * dt) % (math.pi * 2)
-            fireballPulse = (fireballPulse + math.rad(FB_SHOOT_SPEED) * dt) % (math.pi * 2)
-        end
-        if INNER_MODE == "DoubleStar" then
-            dsZAngle = (dsZAngle + math.rad(DS_ORBIT_SPEED) * dt) % (math.pi * 2)
-            dsYAngle = (dsYAngle + math.rad(DS_Y_SPIN_SPEED) * dt) % (math.pi * 2)
-            dsCenterAngle = (dsCenterAngle + math.rad(DS_CENTER_SPEED) * dt) % (math.pi * 2)
-        end
+        if INNER_MODE == "Lazer" or INNER_MODE == "DoubleLazer" then innerLazerAngle = (innerLazerAngle + math.rad(INNER_LAZER_SPEED) * dt) % (math.pi * 2); lazerOrbitAngle = (lazerOrbitAngle + math.rad(INNER_LAZER_ORBIT_SPEED) * dt) % (math.pi * 2) end
+        if INNER_MODE == "Fireball" then fireballZAngle = (fireballZAngle + math.rad(FB_ORBIT_SPEED) * dt) % (math.pi * 2); fireballYAngle = (fireballYAngle + math.rad(FB_Y_SPIN_SPEED) * dt) % (math.pi * 2); fireballPulse = (fireballPulse + math.rad(FB_SHOOT_SPEED) * dt) % (math.pi * 2) end
+        if INNER_MODE == "DoubleStar" then dsZAngle = (dsZAngle + math.rad(DS_ORBIT_SPEED) * dt) % (math.pi * 2); dsYAngle = (dsYAngle + math.rad(DS_Y_SPIN_SPEED) * dt) % (math.pi * 2); dsCenterAngle = (dsCenterAngle + math.rad(DS_CENTER_SPEED) * dt) % (math.pi * 2) end
     end
     
     shootOutAngle = (shootOutAngle + math.rad(SHOOT_OUT_SPEED) * dt) % (math.pi * 2)
@@ -767,7 +719,7 @@ RunService.RenderStepped:Connect(function(dt)
         else
             local ringCount, ringIdx, ringAngle, ringSplitAngle, ringSplitRatio, ringRot
             local axisU, axisV, ringRadius, cp
-            local useSquare, useSplit, useShootOut, splitRatio
+            local useSplit, useShootOut, splitRatio
             local shootOutRange, shootOutSpeed, shootOutOrbitSpeed
             
             if availOuterIdx <= o2c then
@@ -838,7 +790,7 @@ RunService.RenderStepped:Connect(function(dt)
             end
             
             if isO2 and USE_WING then
-                local wingCFrame = CFrame.Angles(_G.wingAngleX or 0, _G.wingAngleY or 0, _G.wingAngleZ or 0)
+                local wingCFrame = CFrame.Angles(wingAngleX or 0, wingAngleY or 0, wingAngleZ or 0)
                 tp = (tp - cp) + cp
                 orbitParts[i].CFrame = CFrame.new(tp) * wingCFrame
             end
@@ -858,11 +810,11 @@ RunService.RenderStepped:Connect(function(dt)
             elseif isO4 then spinAngle = outer4SpinAngle
             else spinAngle = outerSpinAngle end
             
-            -- MAGNET: Y-axis look-at for wing mode, normal spin mode otherwise
+            -- MAGNET: Y-axis look-at (simplest working version)
             if MAGNET_ENABLED then
                 local lk = CFrame.lookAt(tp, a.Position)
-                local sa = (isO2 and outer2SpinAngle) or spinAngle
-                local sc = CFrame.Angles(0, sa, 0)  -- Y-axis magnet: looks at player
+                local sa = spinAngle
+                local sc = CFrame.Angles(0, sa, 0)  -- Y-axis only = looks at player
                 op.CFrame = lk * CFrame.Angles(0, sa, 0)
                 if d.angularVel then d.angularVel.AngularVelocity = Vector3.zero end
             else
@@ -876,6 +828,33 @@ end)
 -- ════════════════════════════════════════════════════════
 -- CHARACTER HOOKS
 -- ════════════════════════════════════════════════════════
+local function getPlayer()
+    local p = Players.LocalPlayer
+    while not p do task.wait() end
+    return p
+end
+
+local function getCharacter()
+    local plr = Players.LocalPlayer
+    return plr.Character or plr.CharacterAdded:Wait()
+end
+
+local function getHRP()
+    local c = getCharacter()
+    return c:WaitForChild("HumanoidRootPart")
+end
+
+local function waitForHRP()
+    while not hrp or not hrp.Parent do
+        hrp = getHRP()
+        if not hrp then task.wait() end
+    end
+end
+
+local function isWearable(inst)
+    return inst:IsA("Accessory") or inst:IsA("Hat")
+end
+
 local function onChar(c)
     chr = c
     hrp = c:WaitForChild("HumanoidRootPart")
@@ -893,7 +872,7 @@ plr.CharacterAdded:Connect(onChar)
 
 -- ════════════════════════════════════════════════════════
 -- GUI
--- ════════════════════════════════════════════════════════
+-- ═══════════════════════════════════════════════════════
 local function createGUI()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "HatOrbitUI"
