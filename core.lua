@@ -643,6 +643,8 @@ function Core.updateWingMode(dt)
     updateAxis("Z")
 end
 
+
+
 -- ══════════════════════════════════════════════════════════
 -- RENDER LOOP
 -- ══════════════════════════════════════════════════════════
@@ -749,52 +751,184 @@ function Core.startRenderLoop()
                     spinAngle = Core.outer2SpinAngle
                 elseif isO3 then
                     spinAngle = Core.outer3SpinAngle
+
+-- core.lua (STRONG MAGNET FIX)
+-- ... (keep all settings and helpers the same until RENDER LOOP)
+
+-- ════════════════════════════════════════════════════════
+-- RENDER LOOP (FIXED MAGNET)
+-- ════════════════════════════════════════════════════════
+function Core.startRenderLoop()
+    local TWO_PI = math.pi * 2
+    local V3_ZERO = Vector3.zero
+    local CF_ID = CFrame.identity
+    local CF_NEW, CF_ANGLES, CF_LOOKAT = CFrame.new, CFrame.Angles, CFrame.lookAt
+    local function squarePos(progress,radius,rot)
+        local sideLen=2*radius; local perimeter=8*radius; local perimeterAngle=progress*perimeter
+        local side=math.floor(perimeterAngle/sideLen)%4; local sideProgress=(perimeterAngle%sideLen)/sideLen
+        local x,y
+        if side==0 then x=radius; y=-radius+sideProgress*sideLen elseif side==1 then x=radius-sideProgress*sideLen; y=radius
+        elseif side==2 then x=-radius; y=radius-sideProgress*sideLen else x=-radius+sideProgress*sideLen; y=-radius end
+        local cr=math.cos(rot); local sr=math.sin(rot); return x*cr-y*sr, x*sr+y*cr
+    end
+
+    getRunService().RenderStepped:Connect(function(dt)
+        if not Core.isActive then return end
+        if not Core.hrp or not Core.hrp.Parent then
+            Core.hrp = getHRP()
+            return
+        end
+        
+        Core.outerOrbitAngle=(Core.outerOrbitAngle+math.rad(Core.ORBIT_SPEED)*dt)%TWO_PI
+        Core.outerSpinAngle=(Core.outerSpinAngle+math.rad(Core.SPIN_SPEED*60)*dt)%TWO_PI
+        Core.outerSplitAngle=(Core.outerSplitAngle-math.rad(Core.ORBIT_SPEED)*dt)%TWO_PI
+        
+        if Core.USE_OUTER2 then
+            Core.outer2OrbitAngle=(Core.outer2OrbitAngle+math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
+            Core.outer2SpinAngle=(Core.outer2SpinAngle+math.rad(Core.OUTER2_SPIN*60)*dt)%TWO_PI
+            Core.outer2SplitAngle=(Core.outer2SplitAngle-math.rad(Core.OUTER2_SPEED)*dt)%TWO_PI
+            Core.updateWingMode(dt)
+        end
+        if Core.USE_OUTER3 then Core.outer3OrbitAngle=(Core.outer3OrbitAngle+math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI; Core.outer3SpinAngle=(Core.outer3SpinAngle+math.rad(Core.OUTER3_SPIN*60)*dt)%TWO_PI; Core.outer3SplitAngle=(Core.outer3SplitAngle-math.rad(Core.OUTER3_SPEED)*dt)%TWO_PI end
+        if Core.USE_OUTER4 then Core.outer4OrbitAngle=(Core.outer4OrbitAngle+math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI; Core.outer4SpinAngle=(Core.outer4SpinAngle+math.rad(Core.OUTER4_SPIN*60)*dt)%TWO_PI; Core.outer4SplitAngle=(Core.outer4SplitAngle-math.rad(Core.OUTER4_SPEED)*dt)%TWO_PI end
+        
+        if Core.USE_INNER_RING then
+            Core.innerOrbitAngle=(Core.innerOrbitAngle+math.rad(Core.INNER_ORBIT_SPEED)*dt)%TWO_PI; Core.innerSpinAngle=(Core.innerSpinAngle+math.rad(Core.INNER_SPIN_SPEED*60)*dt)%TWO_PI
+            if Core.INNER_MODE=="Lazer" or Core.INNER_MODE=="DoubleLazer" then Core.innerLazerAngle=(Core.innerLazerAngle+math.rad(Core.INNER_LAZER_SPEED)*dt)%TWO_PI; Core.lazerOrbitAngle=(Core.lazerOrbitAngle+math.rad(Core.INNER_LAZER_ORBIT_SPEED)*dt)%TWO_PI end
+            if Core.INNER_MODE=="Fireball" then Core.fireballZAngle=(Core.fireballZAngle+math.rad(Core.FB_ORBIT_SPEED)*dt)%TWO_PI; Core.fireballYAngle=(Core.fireballYAngle+math.rad(Core.FB_Y_SPIN_SPEED)*dt)%TWO_PI; Core.fireballPulse=(Core.fireballPulse+math.rad(Core.FB_SHOOT_SPEED)*dt)%TWO_PI end
+            if Core.INNER_MODE=="DoubleStar" then Core.dsZAngle=(Core.dsZAngle+math.rad(Core.DS_ORBIT_SPEED)*dt)%TWO_PI; Core.dsYAngle=(Core.dsYAngle+math.rad(Core.DS_Y_SPIN_SPEED)*dt)%TWO_PI; Core.dsCenterAngle=(Core.dsCenterAngle+math.rad(Core.DS_CENTER_SPEED)*dt)%TWO_PI end
+        end
+        
+        Core.shootOutAngle=(Core.shootOutAngle+math.rad(Core.SHOOT_OUT_SPEED)*dt)%TWO_PI
+        
+        Core.updateShield(dt)
+        for i=1,10 do Core.updateHoldSlot(i) end
+        Core.updateDLazerHold(dt)
+        Core.updateFireballHold(dt)
+        
+        local availableIndices={} for i=1,#Core.orbitParts do local h=Core.handles[i]; if h and not Core.heldHats[h] then table.insert(availableIndices,i) end end
+        local availCount=#availableIndices; if availCount==0 then return end
+        
+        local a=Core.resolveAnchor(); local b=-a.CFrame.LookVector; local r=a.CFrame.RightVector; local u=a.CFrame.UpVector
+        local function uv(mode) if mode=="X" then return u,b elseif mode=="Z" then return r,u else return r,b end end
+        local u1,v1=uv(Core.ORBIT_MODE); local u2,v2=uv(Core.OUTER2_MODE); local u3,v3=uv(Core.OUTER3_MODE); local u4,v4=uv(Core.OUTER4_MODE); local uIn,vIn=uv(Core.INNER_ORBIT_MODE)
+        
+        local innerCap=Core.USE_INNER_RING and math.min(Core.INNER_COUNT,availCount) or 0; local rem=availCount-innerCap
+        local o2c=Core.USE_OUTER2 and math.min(Core.OUTER2_COUNT,rem) or 0; rem=rem-o2c
+        local o3c=Core.USE_OUTER3 and math.min(Core.OUTER3_COUNT,rem) or 0; rem=rem-o3c
+        local o4c=Core.USE_OUTER4 and math.min(Core.OUTER4_COUNT,rem) or 0; local o1c=math.max(rem-o4c,0)
+        local alpha=1-math.exp(-Core.SMOOTHNESS*10*dt)
+        
+        for availIdx,i in ipairs(availableIndices) do
+            local op=Core.orbitParts[i]; local h=Core.handles[i]; local d=Core.orbitData[h]; if not d then continue end
+            local tp; local availOuterIdx=availIdx-innerCap; local isIn=availIdx<=innerCap; local isO2=not isIn and availOuterIdx<=o2c; local isO3=not isIn and not isO2 and availOuterIdx<=(o2c+o3c); local isO4=not isIn and not isO2 and not isO3 and availOuterIdx<=(o2c+o3c+o4c)
+            
+            if isIn then
+                local ringIdx=availIdx-1; local ringCount=innerCap
+                if Core.INNER_MODE=="Ring" then local cp=a.Position+b*Core.INNER_DISTANCE+u*Core.INNER_HEIGHT_OFFSET; local ang=(2*math.pi/Core.INNER_COUNT)*(availIdx-1)+Core.innerOrbitAngle; tp=cp+uIn*math.cos(ang)*Core.INNER_ORBIT_RADIUS+vIn*math.sin(ang)*Core.INNER_ORBIT_RADIUS
+                elseif Core.INNER_MODE=="Lazer" then local osc=math.sin(Core.innerLazerAngle)*Core.INNER_LAZER_RANGE; local bd=Core.INNER_LAZER_DISTANCE+osc; if availIdx==innerCap then local ra=Core.lazerOrbitAngle; local ro=r*math.cos(ra)*Core.INNER_LAZER_RADIUS+u*math.sin(ra)*Core.INNER_LAZER_RADIUS; tp=a.Position+b*bd+u*Core.INNER_LAZER_HEIGHT+ro else local so=(availIdx-1)*0.03; local sp=(availIdx-1)*0.02; tp=a.Position+b*(bd+so)+u*(Core.INNER_LAZER_HEIGHT+sp) end
+                elseif Core.INNER_MODE=="DoubleLazer" then local half=math.ceil(innerCap/2); local isBeam1=availIdx<=half; local beamIdx=isBeam1 and (availIdx-1) or (availIdx-half-1); local beamCount=isBeam1 and half or (innerCap-half); local isTip=(isBeam1 and availIdx==half) or (not isBeam1 and availIdx==innerCap); local osc=math.sin(Core.innerLazerAngle)*Core.INNER_LAZER_RANGE; local bd=Core.INNER_LAZER_DISTANCE+osc; local gap=Core.INNER_BEAM_GAP; local sideOffset=isBeam1 and (-gap/2) or (gap/2); local beamCenter=a.Position+b*bd+u*Core.INNER_LAZER_HEIGHT+r*sideOffset; if isTip then local ra=Core.lazerOrbitAngle; local ro=r*math.cos(ra)*Core.INNER_LAZER_RADIUS+u*math.sin(ra)*Core.INNER_LAZER_RADIUS; tp=beamCenter+ro else local trailIndex=beamCount-beamIdx-1; local trailDist=trailIndex*0.8; tp=beamCenter-b*trailDist end
+                elseif Core.INNER_MODE=="DoubleStar" then local sc=math.ceil(innerCap/2); local isA=availIdx<=sc; local gi=isA and (availIdx-1) or (availIdx-sc-1); local gs=math.max(isA and sc or (innerCap-sc),1); local bc=a.Position+b*Core.DS_DISTANCE+u*Core.DS_HEIGHT; local sa=Core.dsCenterAngle+(isA and 0 or math.pi); local scp=bc+r*math.cos(sa)*Core.DS_CENTER_RADIUS+b*math.sin(sa)*Core.DS_CENTER_RADIUS; local ph=(2*math.pi/gs)*gi; local za=Core.dsZAngle+ph; local lx=math.sin(za)*Core.DS_SIZE; local ly=math.cos(za)*Core.DS_SIZE; local cr=math.cos(Core.dsYAngle); local sr=math.sin(Core.dsYAngle); local wz=lx*cr; local wx=lx*sr; tp=scp+b*wz+r*wx+u*ly
+                else local ro=math.sin(Core.fireballPulse)*Core.FB_RANGE; local bd=Core.FB_DISTANCE+ro; local ph=(2*math.pi/innerCap)*(availIdx-1); local za=Core.fireballZAngle+ph; local lx=math.sin(za)*Core.FB_SIZE; local ly=math.cos(za)*Core.FB_SIZE; local cr=math.cos(Core.fireballYAngle); local sr=math.sin(Core.fireballYAngle); local wz=lx*cr; local wx=lx*sr; tp=a.Position+b*(bd+wz)+r*wx+u*(Core.FB_HEIGHT+ly) end
+            else
+                local ringCount,ringIdx,ringAngle,ringSplitAngle,ringSplitRatio,ringRot,axisU,axisV,ringRadius,cp,useSplit,useShootOut,splitRatio,shootOutRange,shootOutSpeed,shootOutOrbitSpeed
+                if availOuterIdx<=o2c then ringCount=o2c; ringIdx=availOuterIdx-1; ringAngle=Core.outer2OrbitAngle; ringSplitAngle=Core.outer2SplitAngle; ringSplitRatio=Core.OUTER2_SPLIT_RATIO; ringRot=math.rad(Core.OUTER2_ROTATION); cp=a.Position+b*Core.OUTER2_DISTANCE+u*Core.OUTER2_HEIGHT; axisU,axisV=u2,v2; ringRadius=Core.OUTER2_RADIUS; useSplit=Core.USE_OUTER2_SPLIT; splitRatio=Core.OUTER2_SPLIT_RATIO; useShootOut=false
+                elseif availOuterIdx<=o2c+o3c then ringCount=o3c; ringIdx=availOuterIdx-o2c-1; ringAngle=Core.outer3OrbitAngle; ringSplitAngle=Core.outer3SplitAngle; ringSplitRatio=Core.OUTER3_SPLIT_RATIO; ringRot=math.rad(Core.OUTER3_ROTATION); cp=a.Position+b*Core.OUTER3_DISTANCE+u*Core.OUTER3_HEIGHT; axisU,axisV=u3,v3; ringRadius=Core.OUTER3_RADIUS; useSplit=Core.USE_OUTER3_SPLIT; splitRatio=Core.OUTER3_SPLIT_RATIO; useShootOut=false
+                elseif availOuterIdx<=o2c+o3c+o4c then ringCount=o4c; ringIdx=availOuterIdx-o2c-o3c-1; ringAngle=Core.outer4OrbitAngle; ringSplitAngle=Core.outer4SplitAngle; ringSplitRatio=Core.OUTER4_SPLIT_RATIO; ringRot=math.rad(Core.OUTER4_ROTATION); cp=a.Position+b*Core.OUTER4_DISTANCE+u*Core.OUTER4_HEIGHT; axisU,axisV=u4,v4; ringRadius=Core.OUTER4_RADIUS; useSplit=Core.USE_OUTER4_SPLIT; splitRatio=Core.OUTER4_SPLIT_RATIO; useShootOut=false
+                else ringCount=o1c; ringIdx=availOuterIdx-o2c-o3c-o4c-1; ringAngle=Core.outerOrbitAngle; ringSplitAngle=Core.outerSplitAngle; ringSplitRatio=Core.SPLIT_RATIO; ringRot=math.rad(Core.ORBIT_ROTATION); cp=a.Position+b*Core.DISTANCE+u*Core.HEIGHT_OFFSET; axisU,axisV=u1,v1; ringRadius=Core.ORBIT_RADIUS; useSplit=Core.USE_SPLIT; splitRatio=Core.SPLIT_RATIO; useShootOut=Core.USE_SHOOT_OUT; shootOutRange=Core.SHOOT_OUT_RANGE; shootOutSpeed=Core.SHOOT_OUT_SPEED; shootOutOrbitSpeed=Core.SHOOT_OUT_ORBIT_SPEED end
+                
+                if useShootOut then local hatAngle=(2*math.pi/ringCount)*ringIdx+ringAngle; local shootOutProgress=(math.sin(Core.shootOutAngle)+1)*0.5; local radialDistance=ringRadius+shootOutProgress*shootOutRange; local orbitAngle=ringAngle; if Core.USE_SHOOT_OUT_ORBIT then orbitAngle=ringAngle+(shootOutOrbitSpeed/60)*tick()%TWO_PI end; local dirX=math.cos(hatAngle); local dirY=math.sin(hatAngle); if Core.USE_SHOOT_OUT_ORBIT then local cosO=math.cos(orbitAngle-ringAngle); local sinO=math.sin(orbitAngle-ringAngle); local rotatedX=dirX*cosO-dirY*sinO; local rotatedY=dirX*sinO+dirY*cosO; dirX,dirY=rotatedX,rotatedY end; tp=cp+axisU*(dirX*radialDistance)+axisV*(dirY*radialDistance)
+                elseif useSplit then local sc=math.floor(ringCount*splitRatio); local fwd=ringIdx<sc; local ri=fwd and ringIdx or (ringIdx-sc); local ang=fwd and ringAngle or ringSplitAngle; local cap=fwd and sc or (ringCount-sc); local a2=(2*math.pi/math.max(cap,1))*ri+ang; tp=cp+axisU*math.cos(a2)*ringRadius+axisV*math.sin(a2)*ringRadius
+                else local ang=(2*math.pi/math.max(ringCount,1))*ringIdx+ringAngle; tp=cp+axisU*math.cos(ang)*ringRadius+axisV*math.sin(ang)*ringRadius end
+                
+                if isO2 and Core.USE_WING then
+                    local wingCFrame = CFrame.Angles(Core.wingAngleX, Core.wingAngleY, Core.wingAngleZ)
+                    tp = (tp - cp) + cp
+                    Core.orbitParts[i].CFrame = CFrame.new(tp) * wingCFrame
+                end
+            end
+            
+            Core.orbitParts[i].Position = Core.orbitParts[i].Position:Lerp(tp, alpha)
+            
+            -- ══════════════════════════════════════════════════
+            -- STRONG MAGNET SYSTEM (Like Spin Axis)
+            -- ══════════════════════════════════════════════════
+            local d = Core.orbitData[h]
+            if d and d.alignOrient then
+                local shouldUseMagnet = Core.MAGNET_ENABLED
+                local targetPos = a.Position
+                local lookAtTarget = targetPos
+                
+                -- Determine magnet behavior
+                local useMagnet = false
+                local magnetMode = "none"
+                local rx, ry, rz = 0, 0, 0
+                local spinAngle = Core.outerSpinAngle
+                
+                if isIn then
+                    spinAngle = Core.innerSpinAngle
+                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; rx,ry,rz = 0,0,0; if Core.SPIN_MODE=="Y" then ry=Core.innerSpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.innerSpinAngle else rz=Core.innerSpinAngle end
+                    end
+                elseif isO2 then
+                    spinAngle = Core.outer2SpinAngle
+                    if Core.MAGNET_ENABLED then
+                        if Core.USE_WING then
+                            -- Wing mode: check per-axis settings
+                            if Core.WING_MAGNET_ENABLED or Core.WING_Y_MAGNET_ENABLED or Core.WING_X_MAGNET_ENABLED or Core.WING_Z_MAGNET_ENABLED then
+                                useMagnet = true
+                                magnetMode = "wing"
+                                -- Y-axis always ON for look-at (forced)
+                                local rx_w, ry_w, rz_w = 0, 0, 0
+                                if Core.WING_Y_MAGNET_ENABLED then ry_w = Core.wingAngleY end
+                                if Core.WING_X_MAGNET_ENABLED then rx_w = Core.wingAngleX end
+                                if Core.WING_Z_MAGNET_ENABLED then rz_w = Core.wingAngleZ end
+                                rx, ry, rz = rx_w, ry_w, rz_w
+                            end
+                        else
+                            useMagnet = true; magnetMode = "spin"
+                            if Core.OUTER2_SPIN_MODE=="Y" then ry=Core.outer2SpinAngle elseif Core.OUTER2_SPIN_MODE=="X" then rx=Core.outer2SpinAngle else rz=Core.outer2SpinAngle end
+                        end
+                    end
+                elseif isO3 then
+                    spinAngle = Core.outer3SpinAngle
+                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outer3SpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outer3SpinAngle else rz=Core.outer3SpinAngle end
+                    end
                 elseif isO4 then
                     spinAngle = Core.outer4SpinAngle
-                else
-                    spinAngle = Core.outerSpinAngle
-                end
-                
-                -- ═══ MAGNET LOGIC WITH PER-AXIS CONTROL ═══
-                local shouldMagnet = Core.MAGNET_ENABLED
-                local wingMagnet = Core.WING_MAGNET_ENABLED and Core.USE_WING
-                local yMagnet = Core.WING_Y_MAGNET_ENABLED
-                local xMagnet = Core.WING_X_MAGNET_ENABLED
-                local zMagnet = Core.WING_Z_MAGNET_ENABLED
-                
-                if Core.MAGNET_ENABLED and (isO2 and Core.USE_WING) then
-                    -- Wing mode: use per-axis magnet settings
-                    shouldMagnet = Core.WING_MAGNET_ENABLED
-                    -- Force Y-axis magnet for look-at
-                    yMagnet = true
-                end
-                
-                if shouldMagnet then
-                    local lk = CF_LOOKAT(tp, a.Position)
-                    local sa = spinAngle
-                    local sc = CF_ID
-                    
-                    -- Build rotation with per-axis magnet control
-                    local rx, ry, rz = 0, 0, 0
-                    if isO2 and Core.USE_WING then
-                        -- Wing mode: use per-axis magnet
-                        if Core.WING_Y_MAGNET_ENABLED then ry = sa else ry = 0 end
-                        if Core.WING_X_MAGNET_ENABLED then rx = sa else rx = 0 end
-                        if Core.WING_Z_MAGNET_ENABLED then rz = sa else rz = 0 end
-                    else
-                        -- Normal mode: use spin mode
-                        if spinMode == "Y" then ry = sa
-                        elseif spinMode == "X" then rx = sa
-                        elseif spinMode == "Z" then rz = sa end
+                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outer4SpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outer4SpinAngle else rz=Core.outer4SpinAngle end
                     end
-                    
-                    sc = CF_ANGLES(rx, ry, rz)
-                    Core.orbitParts[i].CFrame = lk * sc
-                    if d.angularVel then d.angularVel.AngularVelocity = V3_ZERO end
                 else
-                    Core.orbitParts[i].CFrame = CF_NEW(tp)
-                    if d.angularVel then d.angularVel.AngularVelocity = spinVec end
+                    if Core.MAGNET_ENABLED then useMagnet = true; magnetMode = "spin"; if Core.SPIN_MODE=="Y" then ry=Core.outerSpinAngle elseif Core.SPIN_MODE=="X" then rx=Core.outerSpinAngle else rz=Core.outerSpinAngle end
+                    end
                 end
+                
+                -- Apply magnet
+                if useMagnet and d.alignOrient then
+                    d.alignOrient.Enabled = true
+                    d.alignOrient.MaxTorque = math.huge
+                    d.alignOrient.MaxAngularVelocity = math.huge
+                    d.alignOrient.Responsiveness = 200  -- MAX STRENGTH
+                    
+                    -- Create look-at CFrame
+                    local lookCFrame = CFrame.lookAt(op.Position, a.Position)
+                    
+                    -- Apply spin/wing rotation on top
+                    local spinRot = CFrame.Angles(rx, ry, rz)
+                    local targetCFrame = lookCFrame * CFrame.Angles(rx, ry, rz)
+                    
+                    d.alignOrient.Attachment0 = d.alignOrient.Attachment0
+                    d.alignOrient.Attachment1 = d.alignOrient.Attachment1
+                    
+                    -- Set target CFrame directly for instant magnet
+                    d.alignOrient.CFrame = targetCFrame
+                else
+                    d.alignOrient.Enabled = false
+                end
+            end
+            
+            -- Fallback for non-magnet
+            if not d.alignOrient.Enabled and d.angularVel then
+                d.angularVel.AngularVelocity = V3_ZERO
             end
         end
     end)
