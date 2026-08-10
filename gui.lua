@@ -308,13 +308,13 @@ function GUI.Create(Core)
     addSlider("🌀 Orbit Speed", -10000,10000, Core.SHOOT_OUT_ORBIT_SPEED, 10, function(v) Core.SHOOT_OUT_ORBIT_SPEED=v end)
     addTog("🌍 Orbit While Shoot", function() return Core.USE_SHOOT_OUT_ORBIT end, function() Core.USE_SHOOT_OUT_ORBIT=not Core.USE_SHOOT_OUT_ORBIT end, {text="🌍 ON",bg=Color3.fromRGB(0,150,100)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    -- OUTER RING 2 (with Spin Axis + Wing Mode)
+    -- OUTER RING 2 (Exact Layout)
     addSec("── Outer Ring 2 ──")
     addTog("🔘 Outer Ring 2", function() return Core.USE_OUTER2 end, function() Core.USE_OUTER2=not Core.USE_OUTER2 end, {text="🔵 ON",bg=Color3.fromRGB(60,150,220)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
-    addSlider("👤 Count", 1,16, Core.OUTER2_COUNT, 1, function(v) Core.OUTER2_COUNT=math.floor(v) end)
-    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Halo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER2_MODE end, function(k) Core.OUTER2_MODE=k end)
+    addSlider("👤 Ring 2 Count", 1,16, Core.OUTER2_COUNT, 1, function(v) Core.OUTER2_COUNT=math.floor(v) end)
     
-    -- Spin Axis for Ring 2
+    addModeRow("🔀 Orbit Axis", {{key="Y",text="Y Holo"},{key="X",text="X Tumble"},{key="Z",text="Z Fan"}}, function() return Core.OUTER2_MODE end, function(k) Core.OUTER2_MODE=k end)
+    
     addModeRow("💫 Spin Axis", {{key="Y",text="Y"},{key="X",text="X"},{key="Z",text="Z"}}, function() return Core.OUTER2_SPIN_MODE end, function(k) Core.OUTER2_SPIN_MODE=k end)
     
     addSlider("📏 Distance", -10000,10000, Core.OUTER2_DISTANCE, 0.5, function(v) Core.OUTER2_DISTANCE=v end)
@@ -324,45 +324,33 @@ function GUI.Create(Core)
     addSlider("💫 Spin", -10000,10000, Core.OUTER2_SPIN, 0.5, function(v) Core.OUTER2_SPIN=v end)
     addTog("🔀 Split", function() return Core.USE_OUTER2_SPLIT end, function() Core.USE_OUTER2_SPLIT=not Core.USE_OUTER2_SPLIT end, {text="🔀 ON",bg=Color3.fromRGB(255,170,0)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     addSlider("📊 Split Ratio", 0.1,0.9, Core.OUTER2_SPLIT_RATIO, 0.05, function(v) Core.OUTER2_SPLIT_RATIO=v end)
-
-    -- WING MODE (Dynamic - Connects to Spin Axis)
-    addSec("── 🕊️ Wing Mode (3-Axis) ──")
+    
+    -- WING MODE (Exact Layout)
+    addSec("── 🕊️ Wing Mode ──")
     addTog("🔘 Wing Mode", function() return Core.USE_WING end, function() Core.USE_WING=not Core.USE_WING end, {text="🕊️ ON",bg=Color3.fromRGB(100,200,255)}, {text="⚫ OFF",bg=Color3.fromRGB(55,55,65)})
     
-    -- SAFE axis label helpers
-    local function getSpinMode()
-        local m = Core.OUTER2_SPIN_MODE
-        if m == "X" or m == "Y" or m == "Z" then return m end
-        return "Y"  -- fallback
-    end
+    -- Spin Axis - Magnet Looks (Shows current spin axis for magnet)
+    local spinMode = Core.OUTER2_SPIN_MODE
+    local magnetLabel = ({X="X-Axis", Y="Y-Axis", Z="Z-Axis"})[Core.OUTER2_SPIN_MODE] or "Y-Axis"
+    addSec("  Spin Axis - Magnet Looks: " .. magnetLabel)
     
-    local spinMode = getSpinMode()
+    -- Spin slider (for wing mode)
+    addSlider("Spin", -180,180, Core.OUTER2_SPIN, 1, function(v) Core.OUTER2_SPIN=v end)
     
-    -- Primary Axis (matches Spin Axis)
-    local primaryLabel = ({X="X-Axis (Roll)", Y="Y-Axis (Pitch)", Z="Z-Axis (Yaw)"})[spinMode] or "Y-Axis (Pitch)"
-    addSec("  "..primaryLabel.." (Primary)")
-    addSlider("Min Primary", -180,180, Core.WING_MIN_X, 1, function(v) Core.WING_MIN_X=math.floor(v) end)
-    addSlider("Max Primary", -180,180, Core.WING_MAX_X, 1, function(v) Core.WING_MAX_X=math.floor(v) end)
-    addSlider("Primary Speed", 1,180, Core.WING_SPEED_X, 1, function(v) Core.WING_SPEED_X=v end)
+    -- Min/Max for all axes
+    addSec("  Y-Axis Limits")
+    addSlider("Min Y-Axis", -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
+    addSlider("Max Y-Axis", -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
     
-    -- Secondary axes
-    local secMap = {
-        X = {"Y-Axis (Pitch)", "Z-Axis (Yaw)"},
-        Y = {"X-Axis (Roll)", "Z-Axis (Yaw)"},
-        Z = {"X-Axis (Roll)", "Y-Axis (Pitch)"}
-    }
-    local secs = secMap[spinMode] or {"X-Axis (Roll)", "Z-Axis (Yaw)"}
-    local sec1, sec2 = secs[1], secs[2]
+    addSec("  X-Axis Limits")
+    addSlider("Min X-Axis", -180,180, Core.WING_MIN_X, 1, function(v) Core.WING_MIN_X=math.floor(v) end)
+    addSlider("Max X-Axis", -180,180, Core.WING_MAX_X, 1, function(v) Core.WING_MAX_X=math.floor(v) end)
     
-    addSec("  "..sec1)
-    addSlider("Min "..sec1, -180,180, Core.WING_MIN_Y, 1, function(v) Core.WING_MIN_Y=math.floor(v) end)
-    addSlider("Max "..sec1, -180,180, Core.WING_MAX_Y, 1, function(v) Core.WING_MAX_Y=math.floor(v) end)
-    addSlider(sec1.." Speed", 1,180, Core.WING_SPEED_Y, 1, function(v) Core.WING_SPEED_Y=v end)
+    addSec("  Z-Axis Limits")
+    addSlider("Min Z-Axis", -180,180, Core.WING_MIN_Z, 1, function(v) Core.WING_MIN_Z=math.floor(v) end)
+    addSlider("Max Z-Axis", -180,180, Core.WING_MAX_Z, 1, function(v) Core.WING_MAX_Z=math.floor(v) end)
     
-    addSec("  "..sec2)
-    addSlider("Min "..sec2, -180,180, Core.WING_MIN_Z, 1, function(v) Core.WING_MIN_Z=math.floor(v) end)
-    addSlider("Max "..sec2, -180,180, Core.WING_MAX_Z, 1, function(v) Core.WING_MAX_Z=math.floor(v) end)
-    addSlider(sec2.." Speed", 1,180, Core.WING_SPEED_Z, 1, function(v) Core.WING_SPEED_Z=v end)
+    addSlider("Wing Speed", 1,180, Core.WING_SPEED_X, 1, function(v) Core.WING_SPEED_X=v end)
     
     -- OUTER RING 3
     addSec("── Outer Ring 3 ──")
